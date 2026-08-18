@@ -89,7 +89,7 @@ if not groq_client and not gemini_api_key:
 
 # Current Gemini model.
 # Gemini 2.5 Flash is still available through the Gemini API.
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-3.6-flash"
 
 
 # Current Groq model.
