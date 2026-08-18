@@ -56,8 +56,8 @@ if not groq_client and not gemini_api_key:
 # 4. MODEL CONFIGURATION
 # ============================================================
 
-GEMINI_MODEL = "gemini-2.0-flash"
-GROQ_MODEL = "llama-3.1-70b-versatile"
+GEMINI_MODEL = "gemini-3.6-flash"
+GROQ_MODEL = "llama-3.3-70b-versatile"
 
 
 # ============================================================
