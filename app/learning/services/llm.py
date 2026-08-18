@@ -37,15 +37,20 @@ _gemini_active = bool(gemini_api_key)
 # =====================================================================
 
 GEMINI_MODELS = [
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
     "gemini-3.6-flash",
     "gemini-3.5-flash-lite",
 ]
+
 
 GROQ_MODELS = [
     "openai/gpt-oss-120b",
     "openai/gpt-oss-20b",
     "qwen/qwen3.6-27b",
 ]
+
 
 class LLMGenerationError(Exception):
     """Raised when all configured LLM providers fail."""
