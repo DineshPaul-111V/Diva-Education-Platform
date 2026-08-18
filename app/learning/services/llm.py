@@ -71,7 +71,7 @@ GEMINI_MODEL = "gemini-2.5-flash"
 
 # Groq production model.
 # Supports JSON Object Mode and is suitable for educational apps.
-GROQ_MODEL = "llama-3.1-8b-instant"
+GROQ_MODEL = "openai/gpt-oss-20b"
 
 
 # ============================================================
