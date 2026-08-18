@@ -92,7 +92,7 @@ def _call_gemini_json(prompt: str, schema: type[BaseModel], model: str = "gemini
     full_prompt = prompt + schema_hint
     
     raw = _call_gemini_rest(full_prompt, model=model, max_tokens=max_tokens, json_mode=True)
-    cleaned = re.sub(r"json|", "", raw).strip()
+    cleaned = re.sub(r"```json|```", "", raw).strip()
     
     try:
         return schema.model_validate_json(cleaned)
@@ -132,7 +132,7 @@ def _call_groq_json(prompt: str, schema: type[BaseModel], model: str = "qwen/qwe
     raw = completion.choices[0].message.content or ""
     
     cleaned = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
-    cleaned = re.sub(r"json|", "", cleaned).strip()
+    cleaned = re.sub(r"```json|```", "", raw).strip()
     
     try:
         return schema.model_validate_json(cleaned)
