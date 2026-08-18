@@ -56,8 +56,8 @@ if not groq_client and not gemini_api_key:
 # 4. MODEL CONFIGURATION
 # ============================================================
 
-GEMINI_MODEL = "gemini-3.6-flash"
-GROQ_MODEL = "llama-3.3-70b-versatile"  # Higher context and schema compliance
+GEMINI_MODEL = "gemini-2.0-flash"
+GROQ_MODEL = "llama-3.1-70b-versatile"
 
 
 # ============================================================
@@ -79,11 +79,7 @@ def _clean_model_json(raw: str) -> str:
         raise ValueError("LLM returned an empty response.")
 
     cleaned = raw.strip()
-
-    # Remove reasoning/thinking tags
     cleaned = re.sub(r"<think>.*?</think>", "", cleaned, flags=re.DOTALL | re.IGNORECASE)
-
-    # Remove markdown code fences robustly anywhere in string
     cleaned = re.sub(r"```(?:json)?", "", cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r"```", "", cleaned)
 
@@ -97,13 +93,11 @@ def _parse_schema_response(
 ) -> BaseModel:
     cleaned = _clean_model_json(raw)
 
-    # Attempt 1: Direct Pydantic JSON validation
     try:
         return schema.model_validate_json(cleaned)
     except Exception:
         pass
 
-    # Attempt 2: Extract first JSON object
     start_index = cleaned.find("{")
     if start_index != -1:
         try:
@@ -113,7 +107,6 @@ def _parse_schema_response(
         except Exception:
             pass
 
-    # Attempt 3: Standard json.loads fallback
     try:
         parsed = json.loads(cleaned)
         return schema.model_validate(parsed)
@@ -136,7 +129,7 @@ def _call_gemini_rest(
     if not gemini_api_key:
         raise ValueError("GEMINI_API_KEY is not configured.")
 
-    url = f"[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/){model}:generateContent"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
     headers = {
         "x-goog-api-key": gemini_api_key,
