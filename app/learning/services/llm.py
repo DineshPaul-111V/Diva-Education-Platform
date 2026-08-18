@@ -35,7 +35,7 @@ if groq_api_key:
     try:
         groq_client = Groq(
             api_key=groq_api_key,
-            max_retries=0,
+            max_retries=1,
         )
         logger.info("Groq client initialized successfully.")
     except Exception as e:
@@ -56,7 +56,7 @@ if not groq_client and not gemini_api_key:
 # 4. MODEL CONFIGURATION
 # ============================================================
 
-GEMINI_MODEL = "gemini-3.6-flash"
+GEMINI_MODEL = "gemini-1.5-flash"
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
 
@@ -79,7 +79,11 @@ def _clean_model_json(raw: str) -> str:
         raise ValueError("LLM returned an empty response.")
 
     cleaned = raw.strip()
+
+    # Remove reasoning/thinking tags if present
     cleaned = re.sub(r"<think>.*?</think>", "", cleaned, flags=re.DOTALL | re.IGNORECASE)
+
+    # Remove markdown code fences robustly
     cleaned = re.sub(r"```(?:json)?", "", cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r"```", "", cleaned)
 
@@ -93,11 +97,13 @@ def _parse_schema_response(
 ) -> BaseModel:
     cleaned = _clean_model_json(raw)
 
+    # Attempt 1: Direct Pydantic JSON validation
     try:
         return schema.model_validate_json(cleaned)
     except Exception:
         pass
 
+    # Attempt 2: Extract first JSON object
     start_index = cleaned.find("{")
     if start_index != -1:
         try:
@@ -107,6 +113,7 @@ def _parse_schema_response(
         except Exception:
             pass
 
+    # Attempt 3: Standard json.loads fallback
     try:
         parsed = json.loads(cleaned)
         return schema.model_validate(parsed)
@@ -123,7 +130,7 @@ def _parse_schema_response(
 def _call_gemini_rest(
     prompt: str,
     model: str = GEMINI_MODEL,
-    max_tokens: int = 4096,
+    max_tokens: int = 8192,
     json_mode: bool = True,
 ) -> str:
     if not gemini_api_key:
@@ -179,7 +186,7 @@ def _call_gemini_json(
     prompt: str,
     schema: type[BaseModel],
     model: str = GEMINI_MODEL,
-    max_tokens: int = 4096,
+    max_tokens: int = 8192,
 ) -> BaseModel:
     schema_json = schema.model_json_schema()
     schema_instruction = (
@@ -207,7 +214,7 @@ def _call_groq_json(
     prompt: str,
     schema: type[BaseModel],
     model: str = GROQ_MODEL,
-    max_tokens: int = 4096,
+    max_tokens: int = 8192,
 ) -> BaseModel:
     if not groq_client:
         raise ValueError("Groq client is not initialized.")
@@ -237,6 +244,7 @@ def _call_groq_json(
             messages=messages,
             temperature=0.1,
             max_tokens=max_tokens,
+            response_format={"type": "json_object"},
         )
     except Exception as e:
         raise RuntimeError(f"Groq request failed: {e}") from e
@@ -260,7 +268,7 @@ def call_llm(
     schema: type[BaseModel],
     model_type: str = "thinking",
     retries: int = 1,
-    max_tokens: int = 4096,
+    max_tokens: int = 8192,
 ) -> BaseModel:
     del retries
     errors = []
@@ -298,7 +306,7 @@ def call_llm(
     raise LLMGenerationError("LLM generation failed across providers: " + error_message)
 
 
-def _call_groq_text(prompt: str, model: str = GROQ_MODEL, max_tokens: int = 2000) -> str:
+def _call_groq_text(prompt: str, model: str = GROQ_MODEL, max_tokens: int = 4096) -> str:
     if not groq_client:
         raise ValueError("Groq client is not initialized.")
     completion = groq_client.chat.completions.create(
@@ -311,7 +319,7 @@ def _call_groq_text(prompt: str, model: str = GROQ_MODEL, max_tokens: int = 2000
     return re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
 
 
-def _call_gemini_text(prompt: str, model: str = GEMINI_MODEL, max_tokens: int = 2000) -> str:
+def _call_gemini_text(prompt: str, model: str = GEMINI_MODEL, max_tokens: int = 4096) -> str:
     raw = _call_gemini_rest(prompt=prompt, model=model, max_tokens=max_tokens, json_mode=False)
     return (raw or "").strip()
 
