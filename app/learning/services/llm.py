@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 # Ensure environment variables are loaded
 load_dotenv(override=True)
 
-logger = logging.getLogger(_name_)
+logger = logging.getLogger(__name__)
 
 def get_gemini_api_key() -> str:
     load_dotenv(override=True)
