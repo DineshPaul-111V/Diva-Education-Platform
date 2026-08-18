@@ -22,8 +22,15 @@ logger = logging.getLogger(__name__)
 # 2. API KEYS
 # ============================================================
 
-groq_api_key = os.environ.get("GROQ_API_KEY", "").strip("\"' \t\n\r")
-gemini_api_key = os.environ.get("GEMINI_API_KEY", "").strip("\"' \t\n\r")
+groq_api_key = os.environ.get(
+    "GROQ_API_KEY",
+    ""
+).strip("\"' \t\n\r")
+
+gemini_api_key = os.environ.get(
+    "GEMINI_API_KEY",
+    ""
+).strip("\"' \t\n\r")
 
 
 # ============================================================
@@ -34,43 +41,59 @@ groq_client = None
 
 if groq_api_key:
     try:
-        groq_client = Groq(api_key=groq_api_key)
-        logger.info("Groq client initialized successfully.")
+        # IMPORTANT:
+        # Disable SDK automatic retries.
+        # Otherwise a 429 can block the Gunicorn worker
+        # until the worker timeout is reached.
+        groq_client = Groq(
+            api_key=groq_api_key,
+            max_retries=0,
+        )
+
+        logger.info(
+            "Groq client initialized successfully."
+        )
+
     except Exception as e:
-        logger.exception("Failed to initialize Groq client: %s", e)
+        logger.exception(
+            "Failed to initialize Groq client: %s",
+            e,
+        )
 else:
-    logger.warning("GROQ_API_KEY is not configured.")
+    logger.warning(
+        "GROQ_API_KEY is not configured."
+    )
 
 
-# Gemini is intentionally called through REST below.
-# This avoids SDK authentication/configuration conflicts.
+# Gemini is called through REST.
+# This keeps authentication simple and explicit.
 if gemini_api_key:
-    logger.info("Gemini API key detected.")
+    logger.info(
+        "Gemini API key detected."
+    )
 else:
-    logger.warning("GEMINI_API_KEY is not configured.")
+    logger.warning(
+        "GEMINI_API_KEY is not configured."
+    )
 
 
 if not groq_client and not gemini_api_key:
     logger.critical(
-        "Neither GROQ_API_KEY nor GEMINI_API_KEY is configured. "
-        "All LLM calls will fail."
+        "Neither GROQ_API_KEY nor GEMINI_API_KEY is configured."
     )
 
 
 # ============================================================
-# 4. CURRENT MODEL CONFIGURATION
+# 4. MODEL CONFIGURATION
 # ============================================================
 
-# Gemini 2.5 Flash is currently available through the Gemini API
-# and supports structured JSON output.
-#
-# We intentionally use ONE stable model instead of cycling through
-# many old/deprecated models.
+# Current Gemini model.
+# Gemini 2.5 Flash is still available through the Gemini API.
 GEMINI_MODEL = "gemini-2.5-flash"
 
 
-# Groq production model.
-# Supports JSON Object Mode and is suitable for educational apps.
+# Current Groq model.
+# GPT-OSS 20B supports JSON and structured output capabilities.
 GROQ_MODEL = "openai/gpt-oss-20b"
 
 
@@ -79,30 +102,154 @@ GROQ_MODEL = "openai/gpt-oss-20b"
 # ============================================================
 
 class LLMGenerationError(Exception):
-    """Raised when all configured LLM providers fail."""
+    """
+    Raised when all configured LLM providers fail.
+    """
 
     pass
 
 
 # ============================================================
-# 6. GEMINI REST API
+# 6. JSON CLEANING HELPERS
+# ============================================================
+
+def _clean_model_json(raw: str) -> str:
+    """
+    Clean common Markdown/thinking wrappers around JSON.
+    """
+
+    if not raw:
+        raise ValueError(
+            "LLM returned an empty response."
+        )
+
+    cleaned = raw.strip()
+
+    # Remove <think>...</think>
+    cleaned = re.sub(
+        r"<think>.*?</think>",
+        "",
+        cleaned,
+        flags=re.DOTALL | re.IGNORECASE,
+    ).strip()
+
+    # Remove ```json
+    cleaned = re.sub(
+        r"^```json\s*",
+        "",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+
+    # Remove ```
+    cleaned = re.sub(
+        r"^```\s*",
+        "",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+
+    # Remove closing ```
+    cleaned = re.sub(
+        r"\s*```$",
+        "",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+
+    return cleaned.strip()
+
+
+def _parse_schema_response(
+    raw: str,
+    schema: type[BaseModel],
+    provider: str,
+) -> BaseModel:
+    """
+    Convert an LLM response into a Pydantic model.
+
+    Attempts:
+      1. Direct Pydantic JSON validation
+      2. Extract first JSON object
+      3. Standard json.loads
+    """
+
+    cleaned = _clean_model_json(raw)
+
+    # --------------------------------------------------------
+    # Attempt 1: direct Pydantic validation
+    # --------------------------------------------------------
+
+    try:
+        return schema.model_validate_json(
+            cleaned
+        )
+
+    except Exception:
+        pass
+
+    # --------------------------------------------------------
+    # Attempt 2: extract first JSON object
+    # --------------------------------------------------------
+
+    start_index = cleaned.find("{")
+
+    if start_index != -1:
+
+        try:
+            decoder = json.JSONDecoder(
+                strict=False
+            )
+
+            obj, _ = decoder.raw_decode(
+                cleaned[start_index:]
+            )
+
+            return schema.model_validate(
+                obj
+            )
+
+        except Exception:
+            pass
+
+    # --------------------------------------------------------
+    # Attempt 3: normal JSON parser
+    # --------------------------------------------------------
+
+    try:
+        parsed = json.loads(cleaned)
+
+        return schema.model_validate(
+            parsed
+        )
+
+    except Exception as e:
+
+        raise ValueError(
+            f"{provider} returned invalid JSON "
+            f"for {schema.__name__}: "
+            f"{cleaned[:1500]}"
+        ) from e
+
+
+# ============================================================
+# 7. GEMINI REST API
 # ============================================================
 
 def _call_gemini_rest(
     prompt: str,
     model: str = GEMINI_MODEL,
-    max_tokens: int = 4000,
+    max_tokens: int = 3500,
     json_mode: bool = True,
 ) -> str:
     """
-    Call Gemini directly through the Gemini REST API.
-
-    This intentionally uses the x-goog-api-key header instead of
-    OAuth credentials.
+    Call Gemini through the REST API.
     """
 
     if not gemini_api_key:
-        raise ValueError("GEMINI_API_KEY is not configured.")
+        raise ValueError(
+            "GEMINI_API_KEY is not configured."
+        )
 
     url = (
         "https://generativelanguage.googleapis.com/"
@@ -118,8 +265,11 @@ def _call_gemini_rest(
         "maxOutputTokens": max_tokens,
     }
 
+    # Gemini JSON MIME type.
     if json_mode:
-        generation_config["responseMimeType"] = "application/json"
+        generation_config[
+            "responseMimeType"
+        ] = "application/json"
 
     payload = {
         "contents": [
@@ -134,84 +284,127 @@ def _call_gemini_rest(
         "generationConfig": generation_config,
     }
 
-    logger.info("Calling Gemini model: %s", model)
-
-    response = requests.post(
-        url,
-        headers=headers,
-        json=payload,
-        timeout=45,
+    logger.info(
+        "Calling Gemini model: %s",
+        model,
     )
 
-    if response.status_code != 200:
-        raise Exception(
-            f"Gemini API Error {response.status_code}: {response.text}"
+    try:
+
+        response = requests.post(
+            url,
+            headers=headers,
+            json=payload,
+            timeout=45,
         )
 
-    data = response.json()
+    except requests.RequestException as e:
+
+        raise RuntimeError(
+            f"Gemini network error: {e}"
+        ) from e
+
+    # --------------------------------------------------------
+    # HTTP error handling
+    # --------------------------------------------------------
+
+    if response.status_code != 200:
+
+        raise RuntimeError(
+            f"Gemini API Error "
+            f"{response.status_code}: "
+            f"{response.text}"
+        )
+
+    # --------------------------------------------------------
+    # Parse response
+    # --------------------------------------------------------
 
     try:
-        candidates = data.get("candidates", [])
-
-        if not candidates:
-            raise Exception(
-                f"Gemini returned no candidates: {data}"
-            )
-
-        content = candidates[0].get("content", {})
-        parts = content.get("parts", [])
-
-        if not parts:
-            raise Exception(
-                f"Gemini returned no content parts: {data}"
-            )
-
-        text = parts[0].get("text")
-
-        if not text:
-            raise Exception(
-                f"Gemini returned empty text: {data}"
-            )
-
-        return text
+        data = response.json()
 
     except Exception as e:
-        raise Exception(
-            f"Malformed Gemini API response: {data}"
+
+        raise RuntimeError(
+            "Gemini returned a non-JSON HTTP response."
         ) from e
+
+    candidates = data.get(
+        "candidates",
+        []
+    )
+
+    if not candidates:
+
+        raise RuntimeError(
+            f"Gemini returned no candidates: {data}"
+        )
+
+    content = candidates[0].get(
+        "content",
+        {}
+    )
+
+    parts = content.get(
+        "parts",
+        []
+    )
+
+    if not parts:
+
+        raise RuntimeError(
+            f"Gemini returned no content parts: {data}"
+        )
+
+    text = parts[0].get(
+        "text"
+    )
+
+    if not text:
+
+        raise RuntimeError(
+            f"Gemini returned empty text: {data}"
+        )
+
+    return text
 
 
 # ============================================================
-# 7. GEMINI STRUCTURED JSON
+# 8. GEMINI STRUCTURED JSON
 # ============================================================
 
 def _call_gemini_json(
     prompt: str,
     schema: type[BaseModel],
     model: str = GEMINI_MODEL,
-    max_tokens: int = 4000,
+    max_tokens: int = 3500,
 ) -> BaseModel:
     """
-    Generate structured JSON using Gemini and validate it
-    against the supplied Pydantic model.
+    Call Gemini and validate the JSON against a Pydantic schema.
     """
 
     if not gemini_api_key:
-        raise ValueError("GEMINI_API_KEY is not configured.")
+        raise ValueError(
+            "GEMINI_API_KEY is not configured."
+        )
 
     schema_json = schema.model_json_schema()
 
-    schema_hint = (
+    schema_instruction = (
         "\n\n"
-        "IMPORTANT:\n"
-        "Return ONLY one valid JSON object.\n"
-        "Do not use Markdown.\n"
-        "Do not use ```json fences.\n"
-        "The JSON must match this schema:\n"
+        "STRICT OUTPUT REQUIREMENTS:\n"
+        "1. Return exactly ONE JSON object.\n"
+        "2. Do NOT return Markdown.\n"
+        "3. Do NOT return ```json fences.\n"
+        "4. Do NOT return explanations.\n"
+        "5. The JSON must match this schema:\n"
         f"{json.dumps(schema_json, ensure_ascii=False)}"
     )
 
-    full_prompt = prompt + schema_hint
+    full_prompt = (
+        prompt +
+        schema_instruction
+    )
 
     raw = _call_gemini_rest(
         full_prompt,
@@ -220,195 +413,139 @@ def _call_gemini_json(
         json_mode=True,
     )
 
-    cleaned = raw.strip()
-
-    # Remove accidental Markdown fences.
-    cleaned = re.sub(
-        r"^```json\s*",
-        "",
-        cleaned,
-        flags=re.IGNORECASE,
+    return _parse_schema_response(
+        raw,
+        schema,
+        "Gemini",
     )
-
-    cleaned = re.sub(
-        r"^```\s*",
-        "",
-        cleaned,
-        flags=re.IGNORECASE,
-    )
-
-    cleaned = re.sub(
-        r"\s*```$",
-        "",
-        cleaned,
-        flags=re.IGNORECASE,
-    )
-
-    cleaned = cleaned.strip()
-
-    # First attempt: Pydantic JSON validation.
-    try:
-        return schema.model_validate_json(cleaned)
-    except Exception:
-        pass
-
-    # Second attempt: extract the first JSON object.
-    start_index = cleaned.find("{")
-
-    if start_index != -1:
-        try:
-            decoder = json.JSONDecoder(strict=False)
-
-            obj, _ = decoder.raw_decode(
-                cleaned[start_index:]
-            )
-
-            return schema.model_validate(obj)
-
-        except Exception:
-            pass
-
-    # Third attempt: regular JSON parsing.
-    try:
-        parsed = json.loads(cleaned)
-        return schema.model_validate(parsed)
-
-    except Exception as e:
-        raise ValueError(
-            "Gemini returned invalid JSON that does not match "
-            f"{schema.__name__}: {cleaned[:1000]}"
-        ) from e
 
 
 # ============================================================
-# 8. GROQ STRUCTURED JSON
+# 9. GROQ STRUCTURED JSON
 # ============================================================
 
 def _call_groq_json(
     prompt: str,
     schema: type[BaseModel],
     model: str = GROQ_MODEL,
-    max_tokens: int = 3500,
+    max_tokens: int = 3000,
 ) -> BaseModel:
     """
-    Generate structured JSON using Groq.
+    Call Groq and validate the returned JSON ourselves.
+
+    IMPORTANT:
+    We deliberately DO NOT use Groq response_format here.
+
+    The previous deployment returned:
+        json_validate_failed
+
+    So we avoid provider-side JSON schema validation and
+    validate the response locally with Pydantic.
     """
 
     if not groq_client:
-        raise ValueError("Groq client is not initialized.")
+        raise ValueError(
+            "Groq client is not initialized."
+        )
 
     schema_json = schema.model_json_schema()
 
-    schema_hint = (
+    schema_instruction = (
         "\n\n"
-        "Return ONLY one valid JSON object.\n"
-        "Do not use Markdown.\n"
-        "Do not use ```json fences.\n"
-        "The JSON must match this schema:\n"
+        "STRICT OUTPUT REQUIREMENTS:\n"
+        "1. Return exactly ONE JSON object.\n"
+        "2. Return ONLY JSON.\n"
+        "3. Do NOT return Markdown.\n"
+        "4. Do NOT use ```json fences.\n"
+        "5. Do NOT include explanations.\n"
+        "6. Do NOT include reasoning.\n"
+        "7. Your response must match this schema:\n"
         f"{json.dumps(schema_json, ensure_ascii=False)}"
     )
 
-    call_kwargs = {
-        "model": model,
-        "messages": [
-            {
-                "role": "system",
-                "content": (
-                    "You are a precise JSON-generating educational API. "
-                    "Return ONLY valid JSON matching the requested schema. "
-                    "Do not return explanations or Markdown."
-                ),
-            },
-            {
-                "role": "user",
-                "content": prompt + schema_hint,
-            },
-        ],
-        "temperature": 0.2,
-        "max_tokens": min(max_tokens, 3500),
-
-        # llama-3.1-8b-instant supports JSON Object Mode.
-        "response_format": {
-            "type": "json_object"
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are a JSON-only educational AI API. "
+                "Your entire response must be one valid JSON "
+                "object matching the supplied schema. "
+                "Never output Markdown, explanations, "
+                "reasoning, comments, or code fences."
+            ),
         },
-    }
+        {
+            "role": "user",
+            "content": (
+                prompt +
+                schema_instruction
+            ),
+        },
+    ]
 
-    logger.info("Calling Groq model: %s", model)
-
-    completion = groq_client.chat.completions.create(
-        **call_kwargs
+    logger.info(
+        "Calling Groq model: %s",
+        model,
     )
 
-    raw = completion.choices[0].message.content or ""
-
-    # Remove thinking tags if a model happens to return them.
-    cleaned = re.sub(
-        r"<think>.*?</think>",
-        "",
-        raw,
-        flags=re.DOTALL,
-    ).strip()
-
-    # Remove Markdown fences.
-    cleaned = re.sub(
-        r"^```json\s*",
-        "",
-        cleaned,
-        flags=re.IGNORECASE,
-    )
-
-    cleaned = re.sub(
-        r"^```\s*",
-        "",
-        cleaned,
-        flags=re.IGNORECASE,
-    )
-
-    cleaned = re.sub(
-        r"\s*```$",
-        "",
-        cleaned,
-        flags=re.IGNORECASE,
-    )
-
-    cleaned = cleaned.strip()
-
-    # First attempt.
     try:
-        return schema.model_validate_json(cleaned)
-    except Exception:
-        pass
 
-    # Second attempt: extract JSON object.
-    start_index = cleaned.find("{")
-
-    if start_index != -1:
-        try:
-            decoder = json.JSONDecoder(strict=False)
-
-            obj, _ = decoder.raw_decode(
-                cleaned[start_index:]
+        completion = (
+            groq_client
+            .chat
+            .completions
+            .create(
+                model=model,
+                messages=messages,
+                temperature=0.2,
+                max_tokens=min(
+                    max_tokens,
+                    3000,
+                ),
             )
-
-            return schema.model_validate(obj)
-
-        except Exception:
-            pass
-
-    # Third attempt.
-    try:
-        parsed = json.loads(cleaned)
-        return schema.model_validate(parsed)
+        )
 
     except Exception as e:
-        raise ValueError(
-            "Groq returned invalid JSON that does not match "
-            f"{schema.__name__}: {cleaned[:1000]}"
+
+        # Do not retry here.
+        # max_retries=0 was set during client creation.
+        raise RuntimeError(
+            f"Groq request failed: {e}"
         ) from e
+
+    # --------------------------------------------------------
+    # Extract response
+    # --------------------------------------------------------
+
+    if not completion.choices:
+
+        raise RuntimeError(
+            "Groq returned no choices."
+        )
+
+    raw = (
+        completion
+        .choices[0]
+        .message
+        .content
+        or ""
+    )
+
+    if not raw.strip():
+
+        raise RuntimeError(
+            "Groq returned an empty response."
+        )
+
+    return _parse_schema_response(
+        raw,
+        schema,
+        "Groq",
+    )
 
 
 # ============================================================
-# 9. MAIN STRUCTURED LLM DISPATCHER
+# 10. MAIN STRUCTURED LLM DISPATCHER
 # ============================================================
 
 def call_llm(
@@ -416,7 +553,7 @@ def call_llm(
     schema: type[BaseModel],
     model_type: str = "thinking",
     retries: int = 1,
-    max_tokens: int = 3600,
+    max_tokens: int = 3000,
 ) -> BaseModel:
     """
     Main structured LLM dispatcher.
@@ -427,9 +564,10 @@ def call_llm(
     THINKING:
         Gemini -> Groq
 
-    Only one model per provider is used.
-    This prevents long fallback chains and worker timeouts.
+    Only one model per provider is attempted.
     """
+
+    del retries  # Intentionally unused.
 
     errors = []
 
@@ -440,23 +578,30 @@ def call_llm(
     if model_type == "fast":
 
         # ----------------------------------------------------
-        # 1. Groq
+        # Provider 1: Groq
         # ----------------------------------------------------
 
         if groq_client:
 
             try:
+
                 logger.info(
                     "Fast LLM request -> Groq (%s)",
                     GROQ_MODEL,
                 )
 
-                return _call_groq_json(
-                    prompt,
-                    schema,
+                result = _call_groq_json(
+                    prompt=prompt,
+                    schema=schema,
                     model=GROQ_MODEL,
                     max_tokens=max_tokens,
                 )
+
+                logger.info(
+                    "Groq generation successful."
+                )
+
+                return result
 
             except Exception as e:
 
@@ -464,29 +609,35 @@ def call_llm(
                     f"Groq {GROQ_MODEL}: {e}"
                 )
 
-                logger.warning(
-                    "Groq failed: %s",
-                    e,
+                logger.exception(
+                    "Groq generation failed."
                 )
 
         # ----------------------------------------------------
-        # 2. Gemini fallback
+        # Provider 2: Gemini
         # ----------------------------------------------------
 
         if gemini_api_key:
 
             try:
+
                 logger.info(
                     "Fast LLM fallback -> Gemini (%s)",
                     GEMINI_MODEL,
                 )
 
-                return _call_gemini_json(
-                    prompt,
-                    schema,
+                result = _call_gemini_json(
+                    prompt=prompt,
+                    schema=schema,
                     model=GEMINI_MODEL,
                     max_tokens=max_tokens,
                 )
+
+                logger.info(
+                    "Gemini fallback successful."
+                )
+
+                return result
 
             except Exception as e:
 
@@ -494,9 +645,8 @@ def call_llm(
                     f"Gemini {GEMINI_MODEL}: {e}"
                 )
 
-                logger.warning(
-                    "Gemini fallback failed: %s",
-                    e,
+                logger.exception(
+                    "Gemini fallback failed."
                 )
 
     # ========================================================
@@ -506,23 +656,30 @@ def call_llm(
     else:
 
         # ----------------------------------------------------
-        # 1. Gemini
+        # Provider 1: Gemini
         # ----------------------------------------------------
 
         if gemini_api_key:
 
             try:
+
                 logger.info(
                     "Thinking LLM request -> Gemini (%s)",
                     GEMINI_MODEL,
                 )
 
-                return _call_gemini_json(
-                    prompt,
-                    schema,
+                result = _call_gemini_json(
+                    prompt=prompt,
+                    schema=schema,
                     model=GEMINI_MODEL,
                     max_tokens=max_tokens,
                 )
+
+                logger.info(
+                    "Gemini generation successful."
+                )
+
+                return result
 
             except Exception as e:
 
@@ -530,29 +687,35 @@ def call_llm(
                     f"Gemini {GEMINI_MODEL}: {e}"
                 )
 
-                logger.warning(
-                    "Gemini failed: %s",
-                    e,
+                logger.exception(
+                    "Gemini generation failed."
                 )
 
         # ----------------------------------------------------
-        # 2. Groq fallback
+        # Provider 2: Groq
         # ----------------------------------------------------
 
         if groq_client:
 
             try:
+
                 logger.info(
                     "Thinking LLM fallback -> Groq (%s)",
                     GROQ_MODEL,
                 )
 
-                return _call_groq_json(
-                    prompt,
-                    schema,
+                result = _call_groq_json(
+                    prompt=prompt,
+                    schema=schema,
                     model=GROQ_MODEL,
                     max_tokens=max_tokens,
                 )
+
+                logger.info(
+                    "Groq fallback successful."
+                )
+
+                return result
 
             except Exception as e:
 
@@ -560,16 +723,23 @@ def call_llm(
                     f"Groq {GROQ_MODEL}: {e}"
                 )
 
-                logger.warning(
-                    "Groq fallback failed: %s",
-                    e,
+                logger.exception(
+                    "Groq fallback failed."
                 )
 
     # ========================================================
     # COMPLETE FAILURE
     # ========================================================
 
-    error_message = " | ".join(errors)
+    if not errors:
+
+        errors.append(
+            "No LLM provider is configured."
+        )
+
+    error_message = " | ".join(
+        errors
+    )
 
     logger.error(
         "All LLM generation attempts failed: %s",
@@ -578,12 +748,12 @@ def call_llm(
 
     raise LLMGenerationError(
         "LLM generation failed across providers: "
-        + (error_message or "No LLM provider is configured.")
+        + error_message
     )
 
 
 # ============================================================
-# 10. GROQ TEXT GENERATION
+# 11. GROQ PLAIN TEXT GENERATION
 # ============================================================
 
 def _call_groq_text(
@@ -596,21 +766,45 @@ def _call_groq_text(
     """
 
     if not groq_client:
-        raise ValueError("Groq client is not initialized.")
+        raise ValueError(
+            "Groq client is not initialized."
+        )
 
-    completion = groq_client.chat.completions.create(
-        model=model,
-        messages=[
-            {
-                "role": "user",
-                "content": prompt,
-            }
-        ],
-        temperature=0.4,
-        max_tokens=max_tokens,
+    logger.info(
+        "Calling Groq text model: %s",
+        model,
     )
 
-    raw = completion.choices[0].message.content or ""
+    completion = (
+        groq_client
+        .chat
+        .completions
+        .create(
+            model=model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            temperature=0.4,
+            max_tokens=max_tokens,
+        )
+    )
+
+    if not completion.choices:
+
+        raise RuntimeError(
+            "Groq returned no choices."
+        )
+
+    raw = (
+        completion
+        .choices[0]
+        .message
+        .content
+        or ""
+    )
 
     return re.sub(
         r"<think>.*?</think>",
@@ -621,7 +815,7 @@ def _call_groq_text(
 
 
 # ============================================================
-# 11. GEMINI TEXT GENERATION
+# 12. GEMINI PLAIN TEXT GENERATION
 # ============================================================
 
 def _call_gemini_text(
@@ -634,10 +828,18 @@ def _call_gemini_text(
     """
 
     if not gemini_api_key:
-        raise ValueError("GEMINI_API_KEY is not configured.")
+
+        raise ValueError(
+            "GEMINI_API_KEY is not configured."
+        )
+
+    logger.info(
+        "Calling Gemini text model: %s",
+        model,
+    )
 
     raw = _call_gemini_rest(
-        prompt,
+        prompt=prompt,
         model=model,
         max_tokens=max_tokens,
         json_mode=False,
@@ -647,7 +849,7 @@ def _call_gemini_text(
 
 
 # ============================================================
-# 12. TEXT LLM DISPATCHER
+# 13. TEXT LLM DISPATCHER
 # ============================================================
 
 def call_llm_text(
@@ -665,6 +867,8 @@ def call_llm_text(
         Gemini -> Groq
     """
 
+    del retries
+
     errors = []
 
     # ========================================================
@@ -673,9 +877,14 @@ def call_llm_text(
 
     if model_type == "fast":
 
+        # ----------------------------------------------------
+        # Groq
+        # ----------------------------------------------------
+
         if groq_client:
 
             try:
+
                 logger.info(
                     "Fast text request -> Groq (%s)",
                     GROQ_MODEL,
@@ -692,14 +901,18 @@ def call_llm_text(
                     f"Groq {GROQ_MODEL}: {e}"
                 )
 
-                logger.warning(
-                    "Groq text generation failed: %s",
-                    e,
+                logger.exception(
+                    "Groq text generation failed."
                 )
+
+        # ----------------------------------------------------
+        # Gemini fallback
+        # ----------------------------------------------------
 
         if gemini_api_key:
 
             try:
+
                 logger.info(
                     "Fast text fallback -> Gemini (%s)",
                     GEMINI_MODEL,
@@ -716,9 +929,8 @@ def call_llm_text(
                     f"Gemini {GEMINI_MODEL}: {e}"
                 )
 
-                logger.warning(
-                    "Gemini text generation failed: %s",
-                    e,
+                logger.exception(
+                    "Gemini text generation failed."
                 )
 
     # ========================================================
@@ -727,9 +939,14 @@ def call_llm_text(
 
     else:
 
+        # ----------------------------------------------------
+        # Gemini
+        # ----------------------------------------------------
+
         if gemini_api_key:
 
             try:
+
                 logger.info(
                     "Thinking text request -> Gemini (%s)",
                     GEMINI_MODEL,
@@ -746,14 +963,18 @@ def call_llm_text(
                     f"Gemini {GEMINI_MODEL}: {e}"
                 )
 
-                logger.warning(
-                    "Gemini text generation failed: %s",
-                    e,
+                logger.exception(
+                    "Gemini text generation failed."
                 )
+
+        # ----------------------------------------------------
+        # Groq fallback
+        # ----------------------------------------------------
 
         if groq_client:
 
             try:
+
                 logger.info(
                     "Thinking text fallback -> Groq (%s)",
                     GROQ_MODEL,
@@ -770,16 +991,23 @@ def call_llm_text(
                     f"Groq {GROQ_MODEL}: {e}"
                 )
 
-                logger.warning(
-                    "Groq text generation failed: %s",
-                    e,
+                logger.exception(
+                    "Groq text fallback failed."
                 )
 
     # ========================================================
     # COMPLETE FAILURE
     # ========================================================
 
-    error_message = " | ".join(errors)
+    if not errors:
+
+        errors.append(
+            "No LLM provider is configured."
+        )
+
+    error_message = " | ".join(
+        errors
+    )
 
     logger.error(
         "LLM text generation failed: %s",
@@ -788,5 +1016,5 @@ def call_llm_text(
 
     raise LLMGenerationError(
         "LLM text generation failed: "
-        + (error_message or "No LLM provider is configured.")
+        + error_message
     )
