@@ -1,0 +1,2791 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ lesson.title }} - Diva AI{% endblock %}
+
+{% block content %}
+<!-- Markdown & Mermaid Parsers -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+<style>
+.prose h3 {
+    color: #f8fafc !important;
+    font-size: 1.35rem !important;
+    font-weight: 800 !important;
+    margin-top: 2.25rem !important;
+    margin-bottom: 1rem !important;
+    padding-bottom: 0.5rem !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    letter-spacing: -0.01em !important;
+}
+.prose p {
+    color: #cbd5e1 !important;
+    font-size: 1.05rem !important;
+    line-height: 1.8 !important;
+    margin-bottom: 1.25rem !important;
+}
+.prose ul, .prose ol {
+    margin-bottom: 1.25rem !important;
+    padding-left: 1.5rem !important;
+    color: #cbd5e1 !important;
+}
+.prose li {
+    margin-bottom: 0.5rem !important;
+    line-height: 1.7 !important;
+}
+.prose pre {
+    background-color: #030712 !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 0.875rem !important;
+    padding: 1.15rem 1.35rem !important;
+    overflow-x: auto !important;
+    white-space: pre !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+    line-height: 1.55 !important;
+    margin: 1.25rem 0 !important;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5) !important;
+}
+.prose code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+    background-color: rgba(30, 41, 59, 0.7) !important;
+    color: #38bdf8 !important;
+    padding: 0.2rem 0.45rem !important;
+    border-radius: 0.375rem !important;
+    font-size: 0.9em !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+.prose pre code {
+    background-color: transparent !important;
+    color: #f1f5f9 !important;
+    padding: 0 !important;
+    border: none !important;
+    font-size: 0.925rem !important;
+}
+.prose blockquote {
+    border-left: 4px solid #6366f1 !important;
+    background: rgba(15, 23, 42, 0.6) !important;
+    border-radius: 0 0.75rem 0.75rem 0 !important;
+    padding: 0.875rem 1.25rem !important;
+    margin: 1.25rem 0 !important;
+    color: #94a3b8 !important;
+    font-style: normal !important;
+}
+.prose table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin: 1.5rem 0 !important;
+    border-radius: 0.75rem !important;
+    overflow: hidden !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+.prose th {
+    background: rgba(30, 41, 59, 0.8) !important;
+    color: #f8fafc !important;
+    padding: 0.75rem 1rem !important;
+    font-weight: 700 !important;
+    text-align: left !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+.prose td {
+    padding: 0.75rem 1rem !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    color: #cbd5e1 !important;
+}
+.prose tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.02) !important;
+}
+.mermaid {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(11, 15, 25, 0.85);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    margin: 1.75rem 0;
+    overflow-x: auto;
+}
+.mermaid svg {
+    max-width: 100%;
+    height: auto;
+}
+.perspective-1000 {
+    perspective: 1000px;
+}
+.transform-style-3d {
+    transform-style: preserve-3d;
+}
+.backface-hidden {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+.rotate-y-180 {
+    transform: rotateY(180deg);
+}
+.flashcard-flipped {
+    transform: rotateY(180deg);
+}
+
+@media print {
+    body, html {
+        background: #ffffff !important;
+        color: #000000 !important;
+        overflow: visible !important;
+        height: auto !important;
+        width: 100% !important;
+    }
+    /* Hide layout navigation, sidebar, and non-printable elements */
+    header, aside, #lesson-workspace > aside, #subtopic-panel, #quiz-panel, #remediation-panel, #flashcard-panel, #floating-actions, #runner-drawer, #tutor-drawer, .no-print, #study-guide-modal-header {
+        display: none !important;
+    }
+    #study-guide-modal {
+        position: static !important;
+        display: block !important;
+        background: transparent !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: visible !important;
+        max-height: none !important;
+        height: auto !important;
+        width: 100% !important;
+    }
+    #study-guide-modal > div {
+        max-width: 100% !important;
+        max-height: none !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        overflow: visible !important;
+        height: auto !important;
+    }
+    #study-guide-content {
+        color: #111827 !important;
+        background: transparent !important;
+        max-height: none !important;
+        overflow: visible !important;
+        padding: 0 !important;
+        font-size: 11pt !important;
+        line-height: 1.6 !important;
+        height: auto !important;
+        display: block !important;
+    }
+    #study-guide-content h1, #study-guide-content h2, #study-guide-content h3 {
+        color: #1e1b4b !important;
+        page-break-after: avoid !important;
+    }
+    #study-guide-content pre {
+        background: #f8fafc !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
+        page-break-inside: avoid !important;
+        font-size: 9.5pt !important;
+    }
+    #study-guide-content table {
+        color: #111827 !important;
+        border: 1px solid #cbd5e1 !important;
+        page-break-inside: avoid !important;
+        width: 100% !important;
+    }
+    #study-guide-content th {
+        background: #f1f5f9 !important;
+        color: #0f172a !important;
+    }
+    #study-guide-content td {
+        border-bottom: 1px solid #e2e8f0 !important;
+    }
+}
+</style>
+
+<div class="flex-grow flex h-[calc(100vh-73px)] overflow-hidden relative" id="lesson-workspace">
+    <!-- LEFT SIDEBAR: Table of Contents -->
+    <aside class="w-80 border-r border-white/10 bg-dark-800/40 p-6 flex flex-col h-full space-y-6 flex-shrink-0">
+        <div>
+            <div class="flex items-center space-x-2 flex-wrap gap-y-1">
+                <span class="text-xs font-bold uppercase tracking-wider bg-brand-500/10 text-brand-400 border border-brand-500/20 px-2.5 py-1 rounded-full">
+                    {{ lesson.tier }}
+                </span>
+                <span class="text-xs font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2.5 py-1 rounded-full flex items-center space-x-1">
+                    <i data-lucide="clock" class="w-3 h-3 text-indigo-400"></i>
+                    <span>50 Mins Masterclass</span>
+                </span>
+            </div>
+            <h1 class="text-xl font-bold text-white mt-3">{{ lesson.title }}</h1>
+        </div>
+        
+        <div class="flex-grow overflow-y-auto space-y-2" id="toc-container">
+            {% for sec in sections %}
+                <button onclick="setActiveSection({{ loop.index0 }})" id="toc-btn-{{ loop.index0 }}" class="w-full flex items-center justify-between text-left p-3 rounded-xl border border-white/5 bg-dark-900/40 hover:bg-white/5 transition-all duration-200">
+                    <span class="text-sm font-semibold text-gray-300 truncate" id="toc-title-{{ loop.index0 }}">{{ sec.title }}</span>
+                    <div class="w-4 h-4 rounded-full border border-white/20 flex items-center justify-center flex-shrink-0 ml-2" id="toc-check-{{ loop.index0 }}">
+                        <!-- Check icon dynamically added when viewed -->
+                    </div>
+                </button>
+            {% endfor %}
+            
+            <!-- Flashcards Review Tab -->
+            <button onclick="showFlashcardsSection()" id="toc-btn-flashcards" class="w-full flex items-center justify-between text-left p-3.5 rounded-xl border border-purple-500/20 bg-purple-500/10 hover:bg-purple-500/20 transition-all duration-200">
+                <span class="text-sm font-bold text-purple-300 flex items-center space-x-1.5">
+                    <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
+                    <span>Flashcards & Review</span>
+                </span>
+                <span class="text-[10px] font-bold bg-purple-500/20 text-purple-200 border border-purple-500/30 px-1.5 py-0.5 rounded-full">Recall</span>
+            </button>
+
+            <!-- Final Quiz Unlock button -->
+            <button onclick="showQuizSection()" id="toc-btn-quiz" class="w-full flex items-center justify-between text-left p-3.5 rounded-xl border border-brand-500/20 bg-brand-500/10 hover:bg-brand-500/20 transition-all duration-200">
+                <span class="text-sm font-bold text-brand-400 flex items-center space-x-1.5">
+                    <i data-lucide="award" class="w-4 h-4"></i>
+                    <span>Mastery Quiz</span>
+                </span>
+                <i data-lucide="arrow-right" class="w-4 h-4 text-brand-400" id="quiz-lock-icon"></i>
+            </button>
+        </div>
+
+        <a href="{{ url_for('learning.roadmap_view', path_id=lesson.learning_path_id) }}" class="glass text-center font-semibold text-gray-300 py-3 rounded-xl transition flex items-center justify-center space-x-1.5 hover:bg-white/5">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            <span>Back to Roadmap</span>
+        </a>
+    </aside>
+
+    <!-- MIDDLE: Active Section Content / Quiz -->
+    <section class="flex-grow overflow-y-auto p-8 md:p-12 h-full flex flex-col items-center" id="content-pane">
+        <!-- Subtopic content container -->
+        <div class="w-full max-w-2xl space-y-8" id="subtopic-panel">
+            <div class="flex items-center justify-between border-b border-white/10 pb-4">
+                <div>
+                    <span id="section-badge" class="text-xs font-bold uppercase tracking-wider text-brand-400">Section 1 of {{ sections|length }}</span>
+                    <h2 class="text-2xl md:text-3xl font-extrabold text-white mt-1" id="section-title">Subtopic Title</h2>
+                </div>
+                <div class="flex space-x-2 flex-wrap gap-y-2 items-center">
+                    <button type="button" onclick="openStudyGuideModal()" class="glass hover:bg-indigo-500/10 hover:border-indigo-500/30 text-indigo-300 px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer" title="View consolidated printable Study Guide & Cheat Sheet">
+                        <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+                        <span>Study Guide</span>
+                    </button>
+                    <a href="{{ url_for('learning.lesson_view', progress_id=lesson.id, regenerate='true') }}" onclick="return confirm('Regenerate this module with exhaustive 50-minute textbook depth?');" class="glass hover:bg-emerald-500/10 hover:border-emerald-500/30 text-emerald-300 px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer" title="Regenerate this lesson with exhaustive textbook-level depth">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                        <span>Deep Upgrade</span>
+                    </a>
+                    <button type="button" onclick="openTranslateModal()" class="glass hover:bg-amber-500/10 hover:border-amber-500/30 text-amber-300 px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer" title="Translate this entire lesson into your selected regional language">
+                        <i data-lucide="languages" class="w-3.5 h-3.5"></i>
+                        <span>Translate Lesson</span>
+                    </button>
+                    <button type="button" onclick="askTutorAboutCurrentTopic()" class="glass hover:bg-brand-500/10 hover:border-brand-500/30 text-brand-300 px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                        <span>Ask Diva AI</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Text Content -->
+            <div class="prose prose-invert max-w-none text-gray-300 leading-relaxed text-base md:text-lg space-y-4" id="section-markdown-content">
+                <!-- Injected via marked -->
+            </div>
+
+            <!-- Example box -->
+            <div class="glass p-6 rounded-2xl border-brand-500/10 space-y-3" id="section-example-box">
+                <div class="flex items-center justify-between flex-wrap gap-2">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-brand-400 block">Worked Example</span>
+                        <button onclick="narrateWorkedExample()" class="bg-brand-600/15 hover:bg-brand-600/25 text-brand-300 border border-brand-500/20 px-2.5 py-0.5 rounded-lg text-xs font-semibold flex items-center space-x-1 transition cursor-pointer" title="Listen to code walkthrough in Diva Voice">
+                            <i data-lucide="volume-2" class="w-3 h-3"></i>
+                            <span>Listen</span>
+                        </button>
+                    </div>
+                    <button onclick="openRunnerWithExample()" class="bg-brand-600/20 hover:bg-brand-600/30 text-brand-300 border border-brand-500/30 px-3 py-1 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer">
+                        <i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i>
+                        <span>Run in Playground</span>
+                    </button>
+                </div>
+                <div class="text-sm font-mono bg-dark-900/90 border border-white/5 p-4 rounded-xl text-emerald-300 overflow-x-auto" id="section-example-content">
+                    <!-- Example code/text -->
+                </div>
+            </div>
+
+            <!-- Module Practice MCQs (3 questions with choice for each module) -->
+            <div class="glass p-6 md:p-8 rounded-2xl border border-indigo-500/20 bg-indigo-950/15 space-y-6" id="section-mcq-box">
+                <div class="flex items-center justify-between border-b border-white/10 pb-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-brand-500/20">
+                            <i data-lucide="help-circle" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-white flex items-center gap-2">
+                                <span>Module Practice</span>
+                                <span class="text-[10px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30 px-2 py-0.5 rounded-full uppercase tracking-wider">3 Questions</span>
+                            </h3>
+                            <p class="text-xs text-gray-400">Test your comprehension of this topic before proceeding</p>
+                        </div>
+                    </div>
+                    <span id="mcq-status-badge" class="text-xs font-semibold px-3 py-1 rounded-full bg-brand-500/10 text-brand-300 border border-brand-500/20">
+                        0 of 3 Answered
+                    </span>
+                </div>
+
+                <!-- MCQs Questions List -->
+                <div class="space-y-6" id="section-mcq-list">
+                    <!-- Injected dynamically per section -->
+                </div>
+            </div>
+
+            <!-- Navigation Controls between Subtopics -->
+            <div class="w-full pt-6 border-t border-white/10 flex items-center justify-between gap-4">
+                <button type="button" onclick="prevSection()" id="prev-sec-btn" class="glass hover:bg-white/5 text-gray-300 px-5 py-2.5 rounded-xl font-medium text-sm flex items-center space-x-2 transition">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    <span>Previous</span>
+                </button>
+                
+                <button type="button" onclick="nextSection()" id="next-sec-btn" class="bg-brand-600 hover:bg-brand-500 text-white font-semibold px-6 py-2.5 rounded-xl text-sm flex items-center space-x-2 transition shadow-lg shadow-brand-500/20">
+                    <span id="next-sec-text">Next Section</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4" id="next-sec-icon"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Flashcard & Rapid Recall Container (hidden by default) -->
+        <div class="w-full max-w-2xl space-y-8 hidden" id="flashcard-panel">
+            <div class="text-center space-y-2">
+                <span class="text-xs font-bold uppercase tracking-wider bg-purple-500/10 text-purple-300 border border-purple-500/20 px-2.5 py-1 rounded-full">
+                    Active Recall &bull; Flashcards
+                </span>
+                <h2 class="text-3xl font-extrabold text-white">Concept Flashcard Deck</h2>
+                <p class="text-gray-400 text-sm">Flip cards to test memory retention before taking the Mastery Quiz</p>
+            </div>
+
+            <!-- Flashcard Card with 3D Flip -->
+            <div class="w-full h-80 cursor-pointer perspective-1000 group select-none" onclick="flipCurrentFlashcard()" id="flashcard-card-wrapper">
+                <div class="relative w-full h-full transition-transform duration-500 transform-style-3d shadow-2xl rounded-2xl" id="flashcard-inner">
+                    <!-- Front (Term / Question) -->
+                    <div class="absolute inset-0 w-full h-full glass rounded-2xl border border-white/10 p-8 flex flex-col justify-between backface-hidden bg-gradient-to-br from-dark-900/95 via-indigo-950/40 to-dark-950/95">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-mono font-semibold text-brand-400" id="card-index-indicator">Card 1 of 5</span>
+                            <span class="text-xs text-gray-500 flex items-center gap-1"><i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i> Click to flip</span>
+                        </div>
+                        <div class="text-center space-y-3 my-auto">
+                            <span class="text-xs font-bold uppercase tracking-wider text-indigo-400" id="card-front-category">KEY CONCEPT</span>
+                            <h3 class="text-2xl font-bold text-white leading-snug" id="card-front-text">Concept Question</h3>
+                        </div>
+                        <div class="text-center text-xs text-gray-500 flex items-center justify-center gap-1.5">
+                            <i data-lucide="help-circle" class="w-3.5 h-3.5 text-indigo-400"></i>
+                            <span>Tap to reveal explanation & syntax</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Back (Definition / Solution) -->
+                    <div class="absolute inset-0 w-full h-full glass rounded-2xl border border-brand-500/30 p-8 flex flex-col justify-between backface-hidden rotate-y-180 bg-gradient-to-br from-indigo-950/70 via-dark-900/95 to-brand-950/50">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-emerald-400 flex items-center gap-1"><i data-lucide="check" class="w-3.5 h-3.5"></i> Explanation & Solution</span>
+                            <span class="text-xs text-gray-400 flex items-center gap-1"><i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Flip back</span>
+                        </div>
+                        <div class="overflow-y-auto max-h-44 text-left space-y-2 pr-2">
+                            <p class="text-sm text-gray-200 leading-relaxed" id="card-back-text">Explanation content</p>
+                            <pre class="text-xs font-mono bg-dark-950/90 border border-white/10 p-2.5 rounded-lg text-emerald-300 overflow-x-auto hidden" id="card-back-code"></pre>
+                        </div>
+                        <div class="flex items-center justify-between pt-3 border-t border-white/10">
+                            <span class="text-[11px] text-gray-400">Rate Understanding:</span>
+                            <div class="flex items-center space-x-2">
+                                <button type="button" onclick="rateCurrentCard('hard', event)" class="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-xs font-semibold transition">Review</button>
+                                <button type="button" onclick="rateCurrentCard('good', event)" class="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-semibold transition">Good</button>
+                                <button type="button" onclick="rateCurrentCard('mastered', event)" class="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition flex items-center gap-1"><i data-lucide="sparkles" class="w-3 h-3"></i> Mastered (+10 XP)</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card Navigation Controls -->
+            <div class="flex items-center justify-between gap-4 pt-2">
+                <button type="button" onclick="prevFlashcard()" id="card-prev-btn" class="glass hover:bg-white/5 text-gray-300 px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    <span>Previous</span>
+                </button>
+                <div class="flex items-center space-x-1.5" id="card-dots-container">
+                    <!-- Dynamic dots -->
+                </div>
+                <button type="button" onclick="nextFlashcard()" id="card-next-btn" class="bg-brand-600 hover:bg-brand-500 text-white px-5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shadow-lg shadow-brand-500/20">
+                    <span>Next Card</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Quiz Container (hidden by default) -->
+        <div class="w-full max-w-2xl space-y-8 hidden" id="quiz-panel">
+            <div class="text-center space-y-2">
+                <span class="text-xs font-bold uppercase tracking-wider bg-brand-500/10 text-brand-400 border border-brand-500/20 px-2.5 py-1 rounded-full">
+                    Mastery check
+                </span>
+                <h2 class="text-3xl font-extrabold text-white">Concept Evaluation</h2>
+                <p class="text-gray-400">Score 70% or higher to pass and unlock the next lesson</p>
+            </div>
+
+            <!-- Quiz form -->
+            <div class="space-y-8 mt-8" id="quiz-questions-list">
+                <!-- Dynamic questions -->
+            </div>
+
+            <button onclick="submitQuiz()" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-semibold py-4 rounded-xl shadow-lg transition">
+                Submit Answers
+            </button>
+        </div>
+
+        <!-- Remediation Container (hidden by default) -->
+        <div class="w-full max-w-2xl space-y-8 hidden" id="remediation-panel">
+            <div class="glass p-8 rounded-2xl border-rose-500/20 space-y-6">
+                <div class="flex items-center space-x-3 text-rose-400">
+                    <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                    <h2 class="text-2xl font-bold">Revision Required</h2>
+                </div>
+                <div class="prose prose-invert max-w-none text-gray-300" id="remediation-text">
+                    <!-- Remediation markdown -->
+                </div>
+                <button onclick="startRetry()" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-semibold py-4.5 rounded-xl shadow-lg transition">
+                    Retry Practice Quiz
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- RIGHT PANEL: Floating Action Buttons (Cleanly hides when drawers open) -->
+    <div id="floating-actions" class="fixed right-6 bottom-6 z-40 flex flex-col space-y-3 transition-all duration-300">
+        <!-- Code Runner Toggle -->
+        <button onclick="toggleRunnerDrawer()" class="w-13 h-13 p-3.5 rounded-full bg-gradient-to-tr from-brand-600 via-blue-600 to-indigo-600 hover:scale-110 shadow-xl shadow-brand-500/25 flex items-center justify-center text-white transition-all duration-300 cursor-pointer" title="Code Runner Playground">
+            <i data-lucide="terminal" class="w-6 h-6"></i>
+        </button>
+        <!-- AI Tutor Toggle -->
+        <button onclick="toggleTutorDrawer()" class="w-13 h-13 p-3.5 rounded-full bg-gradient-to-tr from-brand-600 to-indigo-600 hover:scale-110 shadow-xl shadow-brand-500/25 flex items-center justify-center text-white transition-all duration-300 cursor-pointer relative" title="Diva AI Voice Tutor">
+            <i data-lucide="message-square" class="w-6 h-6" id="tutor-toggle-icon"></i>
+            <span class="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-brand-400 border-2 border-dark-950 flex items-center justify-center">
+                <i data-lucide="mic" class="w-2 h-2 text-dark-950"></i>
+            </span>
+        </button>
+    </div>
+
+    <!-- Code Runner Slide-Over Drawer -->
+    <aside class="w-[520px] max-w-[95vw] border-l border-white/10 bg-[#0e1322]/98 backdrop-blur-xl p-5 flex flex-col h-[calc(100vh-73px)] space-y-4 fixed right-0 top-[73px] bottom-0 z-50 translate-x-full transition-all duration-300 shadow-2xl" id="runner-drawer">
+        <div class="flex items-center justify-between border-b border-white/10 pb-3 flex-shrink-0">
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-brand-500/20">
+                    <i data-lucide="terminal" class="w-4 h-4 text-white"></i>
+                </div>
+                <h3 class="text-sm font-bold text-white">Interactive Runner</h3>
+            </div>
+            <div class="flex items-center space-x-2">
+                <select id="drawer-lang-select" class="bg-dark-900 border border-white/10 text-xs text-white rounded-lg px-2.5 py-1 focus:outline-none focus:border-brand-500">
+                    <option value="python">Python 3</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="typescript">TypeScript</option>
+                    <option value="c">C</option>
+                    <option value="c++">C++</option>
+                    <option value="java">Java</option>
+                    <option value="rust">Rust</option>
+                    <option value="go">Go</option>
+                    <option value="sql">SQL</option>
+                </select>
+                <button onclick="toggleRunnerDrawer()" class="w-8 h-8 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition" title="Close">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Editor Area -->
+        <div class="flex flex-col space-y-2 flex-grow min-h-[160px] max-h-[45%]">
+            <div class="flex items-center justify-between text-xs text-gray-400">
+                <span>Code Editor</span>
+                <button onclick="runDrawerCode()" id="drawer-run-btn" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1 rounded-lg text-xs flex items-center space-x-1 transition shadow">
+                    <i data-lucide="play" class="w-3.5 h-3.5 fill-current" id="drawer-run-icon"></i>
+                    <span id="drawer-run-text">Run</span>
+                </button>
+            </div>
+            <textarea id="drawer-code-editor" class="w-full flex-grow bg-[#030712] border border-white/10 rounded-xl p-3 text-xs font-mono text-emerald-300 resize-none focus:outline-none focus:border-emerald-500 leading-5 code-theme" style="background-color: #030712 !important; color: #34d399 !important;" placeholder="Enter code..."></textarea>
+        </div>
+
+        <!-- Stdin Input (Collapsible) -->
+        <div class="space-y-1">
+            <details class="text-xs text-gray-400 cursor-pointer">
+                <summary class="hover:text-white font-semibold">Standard Input (stdin)</summary>
+                <textarea id="drawer-stdin" rows="2" class="w-full bg-[#0b0f19] border border-white/10 rounded-lg p-2 text-xs font-mono text-gray-300 focus:outline-none focus:border-brand-500 mt-1" style="background-color: #0b0f19 !important;" placeholder="Inputs for stdin..."></textarea>
+            </details>
+        </div>
+
+        <!-- Console Output Area -->
+        <div class="flex flex-col flex-grow min-h-[160px] max-h-[40%] bg-[#030712] border border-white/10 rounded-xl p-3 space-y-2 overflow-hidden" style="background-color: #030712 !important;">
+            <div class="flex items-center justify-between text-xs text-gray-400 border-b border-white/5 pb-1 flex-shrink-0">
+                <span class="font-semibold uppercase tracking-wider">Console Output</span>
+                <div class="flex items-center space-x-2">
+                    <span id="drawer-time-badge" class="text-[10px] font-mono text-gray-500"></span>
+                    <button onclick="document.getElementById('drawer-output').innerText = '';" class="hover:text-white" title="Clear"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+                </div>
+            </div>
+            <div id="drawer-output" class="flex-grow font-mono text-xs text-gray-300 whitespace-pre-wrap overflow-y-auto leading-relaxed">
+<span class="text-gray-500">Press "Run" to execute your code snippet.</span>
+            </div>
+            <div id="drawer-ai-error" class="hidden pt-1 border-t border-rose-500/20">
+                <button onclick="explainDrawerError()" id="drawer-explain-btn" class="w-full bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-[11px] font-semibold py-1 rounded-lg flex items-center justify-center space-x-1.5 transition">
+                    <i data-lucide="sparkles" class="w-3 h-3"></i>
+                    <span>Explain Error with AI</span>
+                </button>
+                <div id="drawer-ai-explanation" class="hidden text-[11px] text-gray-200 prose prose-invert max-w-none pt-2 max-h-32 overflow-y-auto"></div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- AI Tutor Drawer with Voice Chat & Voice Chart -->
+    <aside class="w-[400px] max-w-[95vw] border-l border-white/10 bg-[#0e1322]/98 backdrop-blur-xl p-5 flex flex-col h-[calc(100vh-73px)] space-y-3 fixed right-0 top-[73px] bottom-0 z-50 translate-x-full transition-all duration-300 shadow-2xl" id="tutor-drawer">
+        <div class="flex items-center justify-between border-b border-white/10 pb-3 flex-shrink-0">
+            <div class="flex items-center space-x-2.5">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-brand-500/20">
+                    <i data-lucide="sparkles" class="w-4 h-4 text-white"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
+                        <span>Diva AI Tutor</span>
+                        <span id="voice-mode-badge" class="text-[9px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30 px-1.5 py-0.5 rounded-full uppercase tracking-wider">Voice Ready</span>
+                    </h3>
+                    <p class="text-[11px] text-emerald-400 font-medium flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse"></span> RAG Context Active</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-1.5">
+                <!-- TTS Voice Reading Toggle -->
+                <button onclick="toggleVoiceTTS()" id="tutor-tts-toggle" class="w-8 h-8 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 flex items-center justify-center transition border border-brand-500/20" title="Voice Read Aloud (Enabled)">
+                    <i data-lucide="volume-2" class="w-4 h-4" id="tts-toggle-icon"></i>
+                </button>
+                <!-- Voice Chart / Waveform Panel Toggle -->
+                <button onclick="toggleVoiceChartPanel()" id="tutor-chart-toggle" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-indigo-300 flex items-center justify-center transition border border-white/10" title="Toggle Live Voice Chart & Visualizer">
+                    <i data-lucide="activity" class="w-4 h-4"></i>
+                </button>
+                <!-- Close Button -->
+                <button onclick="toggleTutorDrawer()" class="w-8 h-8 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition" title="Close">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Live Voice Chart / Audio Frequency Visualizer Box & Narration Controller -->
+        <div id="voice-chart-panel" class="glass rounded-2xl p-3.5 border border-brand-500/30 bg-gradient-to-b from-brand-950/50 via-dark-950/70 to-dark-950/95 shadow-xl shadow-brand-950/30 space-y-3 flex-shrink-0 transition-all duration-300">
+            <!-- Header with Status & Language Selector -->
+            <div class="flex items-center justify-between text-xs gap-2">
+                <div class="flex items-center space-x-2">
+                    <span class="relative flex h-2.5 w-2.5">
+                        <span id="voice-status-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
+                        <span id="voice-status-dot" class="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-500 shadow-sm shadow-brand-400"></span>
+                    </span>
+                    <span id="voice-status-text" class="font-bold text-brand-200 text-xs tracking-wide truncate">Voice Ready</span>
+                </div>
+                
+                <!-- Dynamic Language Indicator & Selector Badge -->
+                <div class="relative flex-shrink-0">
+                    <button id="tutor-lang-badge-btn" onclick="toggleLanguageMenu()" class="flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-brand-500/15 hover:bg-brand-500/25 border border-brand-500/30 text-brand-200 hover:text-white text-[11px] font-bold transition shadow-sm cursor-pointer" title="Language: Click to change">
+                        <span id="tutor-lang-flag" class="text-xs">🇬🇧</span>
+                        <span id="tutor-lang-name" class="tracking-wide">English</span>
+                        <i data-lucide="chevron-down" class="w-3 h-3 text-brand-300"></i>
+                    </button>
+                    <!-- Language Selection Popup Menu -->
+                    <div id="tutor-lang-menu" class="hidden absolute right-0 top-full mt-1.5 w-44 bg-[#0a0f1d]/95 backdrop-blur-xl border border-brand-500/30 rounded-xl p-1.5 shadow-2xl z-50 space-y-0.5">
+                        <button onclick="setTutorLanguage('English')" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-200 hover:bg-brand-500/20 hover:text-white flex items-center justify-between transition cursor-pointer">
+                            <span>🇬🇧 English</span>
+                            <span class="text-[10px] text-gray-400 font-mono">EN</span>
+                        </button>
+                        <button onclick="setTutorLanguage('Tamil')" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-200 hover:bg-brand-500/20 hover:text-white flex items-center justify-between transition cursor-pointer">
+                            <span>🇮🇳 தமிழ்</span>
+                            <span class="text-[10px] text-brand-300 font-semibold">Tamil</span>
+                        </button>
+                        <button onclick="setTutorLanguage('Telugu')" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-200 hover:bg-brand-500/20 hover:text-white flex items-center justify-between transition cursor-pointer">
+                            <span>🇮🇳 తెలుగు</span>
+                            <span class="text-[10px] text-brand-300 font-semibold">Telugu</span>
+                        </button>
+                        <button onclick="setTutorLanguage('Bengali')" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-200 hover:bg-brand-500/20 hover:text-white flex items-center justify-between transition cursor-pointer">
+                            <span>🇮🇳 বাংলা</span>
+                            <span class="text-[10px] text-brand-300 font-semibold">Bengali</span>
+                        </button>
+                        <button onclick="setTutorLanguage('Hindi')" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-200 hover:bg-brand-500/20 hover:text-white flex items-center justify-between transition cursor-pointer">
+                            <span>🇮🇳 हिंदी</span>
+                            <span class="text-[10px] text-brand-300 font-semibold">Hindi</span>
+                        </button>
+                        <button onclick="setTutorLanguage('Marathi')" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-200 hover:bg-brand-500/20 hover:text-white flex items-center justify-between transition cursor-pointer">
+                            <span>🇮🇳 मराठी</span>
+                            <span class="text-[10px] text-brand-300 font-semibold">Marathi</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Audio Frequency / Waveform Chart Canvas -->
+            <div class="relative w-full h-12 rounded-xl overflow-hidden bg-dark-950/90 border border-white/10 p-1 flex flex-col justify-between shadow-inner">
+                <canvas id="voice-chart-canvas" width="360" height="42" class="w-full h-full block rounded-lg"></canvas>
+                <div class="flex items-center justify-between px-1.5 pb-0.5 text-[8px] font-mono text-gray-500 border-t border-white/5 pointer-events-none select-none">
+                    <span>60Hz</span>
+                    <span>250Hz</span>
+                    <span>1kHz</span>
+                    <span>4kHz</span>
+                    <span>16kHz</span>
+                </div>
+                <span id="player-live-sentence" class="absolute inset-0 flex items-center justify-center px-3 bg-dark-950/85 backdrop-blur-sm text-[11px] text-brand-200 truncate pointer-events-none hidden font-medium text-center"></span>
+            </div>
+
+            <!-- Section Audio Player Action Button & Speed Controls -->
+            <div class="flex items-center justify-between pt-1 border-t border-white/5 gap-2">
+                <!-- Listen to Section Button -->
+                <button id="player-play-btn" onclick="toggleSectionNarration()" class="flex-grow bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold text-xs px-3 py-1.5 rounded-xl shadow-md shadow-brand-500/25 flex items-center justify-center space-x-1.5 transition active:scale-95 cursor-pointer truncate">
+                    <i data-lucide="play" class="w-3.5 h-3.5 fill-current" id="player-play-icon"></i>
+                    <span id="player-play-text">Listen to Section</span>
+                </button>
+
+                <!-- Stop Button (Visible when speaking) -->
+                <button id="voice-stop-btn" onclick="stopAllSpeech()" class="hidden flex-shrink-0 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 font-semibold text-xs px-2.5 py-1.5 rounded-xl flex items-center space-x-1 transition cursor-pointer" title="Stop Audio">
+                    <i data-lucide="square" class="w-3 h-3 fill-current"></i>
+                    <span>Stop</span>
+                </button>
+
+                <!-- Voice Speed Selector -->
+                <div class="flex items-center space-x-0.5 flex-shrink-0" id="voice-speed-selector">
+                    <button type="button" onclick="setVoiceSpeed(0.85, this)" class="px-1.5 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-gray-400 font-mono text-[10px] transition">0.8x</button>
+                    <button type="button" onclick="setVoiceSpeed(1.0, this)" class="px-1.5 py-0.5 rounded-md bg-brand-500/20 text-brand-300 border border-brand-500/30 font-mono font-bold text-[10px] transition">1.0x</button>
+                    <button type="button" onclick="setVoiceSpeed(1.25, this)" class="px-1.5 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-gray-400 font-mono text-[10px] transition">1.25x</button>
+                    <button type="button" onclick="setVoiceSpeed(1.5, this)" class="px-1.5 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-gray-400 font-mono text-[10px] transition">1.5x</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat History -->
+        <div class="flex-grow overflow-y-auto space-y-3 pr-1 text-sm leading-relaxed" id="chat-history">
+            <div class="bg-white/5 border border-white/5 rounded-2xl p-4 text-gray-300 text-xs space-y-1.5">
+                <div class="flex items-center space-x-2 text-brand-400 font-semibold mb-1">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                    <span>Diva AI</span>
+                </div>
+                <p>Hello! I am <strong>Diva</strong>, your personal AI computer science tutor. You can speak to me directly using the <strong>Microphone (🎙️)</strong> button or type below. Ask me anything about <strong>{{ lesson.title }}</strong>!</p>
+            </div>
+        </div>
+
+        <!-- Quick Action Presets -->
+        <div class="grid grid-cols-4 gap-1.5 flex-shrink-0">
+            <button onclick="sendQuickAction('simplify')" class="glass hover:bg-brand-500/20 text-[11px] font-semibold text-gray-300 hover:text-brand-300 py-1.5 px-1 rounded-lg truncate text-center transition border border-white/5 hover:border-brand-500/30" title="Explain Like I'm 5">
+                🐣 ELI5
+            </button>
+            <button onclick="sendQuickAction('code_breakdown')" class="glass hover:bg-brand-500/20 text-[11px] font-semibold text-gray-300 hover:text-brand-300 py-1.5 px-1 rounded-lg truncate text-center transition border border-white/5 hover:border-brand-500/30" title="Show Code Walkthrough">
+                💻 Code
+            </button>
+            <button onclick="sendQuickAction('quiz_me')" class="glass hover:bg-brand-500/20 text-[11px] font-semibold text-gray-300 hover:text-brand-300 py-1.5 px-1 rounded-lg truncate text-center transition border border-white/5 hover:border-brand-500/30" title="Socratic Quiz Check">
+                🎯 Quiz Me
+            </button>
+            <button onclick="sendQuickAction('enterprise_example')" class="glass hover:bg-brand-500/20 text-[11px] font-semibold text-gray-300 hover:text-brand-300 py-1.5 px-1 rounded-lg truncate text-center transition border border-white/5 hover:border-brand-500/30" title="Production Architecture">
+                🏢 Prod Scale
+            </button>
+        </div>
+
+        <!-- Input Box with Mic, Textarea and Send -->
+        <div class="flex items-center gap-2 pt-2 border-t border-white/10 flex-shrink-0">
+            <!-- Voice Input Button (Mic) -->
+            <button onclick="toggleSpeechRecognition()" id="tutor-mic-btn" class="w-10 h-10 rounded-xl bg-dark-900 hover:bg-brand-600/20 border border-white/10 hover:border-brand-500/40 text-gray-300 hover:text-brand-400 transition flex items-center justify-center relative flex-shrink-0 shadow-sm" title="Click to Speak (Voice Input)">
+                <i data-lucide="mic" class="w-4 h-4" id="tutor-mic-icon"></i>
+                <span id="tutor-mic-pulse" class="hidden absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+            </button>
+
+            <!-- Text Input -->
+            <input type="text" id="tutor-input" onkeydown="if(event.key==='Enter') sendTutorMessage()" placeholder="Ask Diva anything or tap mic..." class="flex-grow bg-dark-900 border border-white/10 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-brand-500 transition text-xs">
+
+            <!-- Send Button -->
+            <button onclick="sendTutorMessage()" id="tutor-send-btn" class="w-10 h-10 rounded-xl bg-brand-600 hover:bg-brand-500 text-white transition flex items-center justify-center flex-shrink-0 shadow-lg shadow-brand-500/20 active:scale-95" title="Send Question">
+                <i data-lucide="send" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Consolidated Study Guide / Printable Cheat Sheet Modal -->
+    <div id="study-guide-modal" class="fixed inset-0 z-50 bg-dark-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+        <div class="glass max-w-4xl w-full max-h-[90vh] rounded-3xl border border-white/15 bg-[#0b0f19] flex flex-col overflow-hidden shadow-2xl">
+            <div id="study-guide-modal-header" class="p-6 border-b border-white/10 flex items-center justify-between bg-dark-900/80 flex-shrink-0">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-brand-500/20">
+                        <i data-lucide="book-open" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-white">{{ lesson.title }}</h3>
+                        <p class="text-xs text-gray-400">Consolidated Masterclass Study Guide & Cheat Sheet</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="downloadLessonPDF()" class="px-3.5 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow shadow-brand-500/20 cursor-pointer" title="Download or Print Multi-Page PDF">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                        <span>Download PDF</span>
+                    </button>
+                    <button onclick="closeStudyGuideModal()" class="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition cursor-pointer">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-8 overflow-y-auto space-y-8 prose prose-invert max-w-none text-gray-300 leading-relaxed text-sm" id="study-guide-content">
+                <!-- Consolidated sections injected here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const sections = {{ sections|tojson }};
+    const clientQuiz = {{ quiz|tojson }};
+    
+    // ── Supported Indian & Global Languages Configuration ──
+    const INDIAN_LANG_CONFIG = {
+        'English': { code: 'en-US', label: 'English', flag: '🇬🇧', script: 'English', prefixes: ['en'], names: ['Natural', 'Jenny', 'Samantha', 'Google UK English Female', 'Victoria', 'en-US', 'en-IN'] },
+        'Tamil':   { code: 'ta-IN', label: 'தமிழ்', flag: '🇮🇳', script: 'தமிழ் (Tamil)', prefixes: ['ta'], names: ['tamil', 'தமிழ்', 'ta-in', 'valluvar', 'iniya'] },
+        'Telugu':  { code: 'te-IN', label: 'తెలుగు', flag: '🇮🇳', script: 'తెలుగు (Telugu)', prefixes: ['te'], names: ['telugu', 'తెలుగు', 'te-in', 'mohan', 'shruti'] },
+        'Bengali': { code: 'bn-IN', label: 'বাংলা', flag: '🇮🇳', script: 'বাংলা (Bengali)', prefixes: ['bn'], names: ['bengali', 'bangla', 'বাংলা', 'bn-in', 'bn-bd', 'tanishaa', 'bashkar'] },
+        'Marathi': { code: 'mr-IN', label: 'मराठी', flag: '🇮🇳', script: 'मराठी (Marathi)', prefixes: ['mr'], names: ['marathi', 'मराठी', 'mr-in', 'aarohi', 'manohar'] },
+        'Hindi':   { code: 'hi-IN', label: 'हिंदी', flag: '🇮🇳', script: 'हिंदी (Hindi)', prefixes: ['hi'], names: ['hindi', 'हिंदी', 'hi-in', 'madhur', 'swara', 'kalpana'] }
+    };
+
+    function getActiveLanguage() {
+        const match = document.cookie.match(/(^| )preferred_language=([^;]+)/);
+        if (match) {
+            const decoded = decodeURIComponent(match[2]);
+            if (INDIAN_LANG_CONFIG[decoded]) return decoded;
+            const lower = decoded.toLowerCase();
+            for (let k in INDIAN_LANG_CONFIG) {
+                if (k.toLowerCase() === lower) return k;
+            }
+        }
+        return 'English';
+    }
+
+    function toggleLanguageMenu() {
+        const menu = document.getElementById('tutor-lang-menu');
+        if (menu) menu.classList.toggle('hidden');
+    }
+
+    function setTutorLanguage(lang) {
+        const menu = document.getElementById('tutor-lang-menu');
+        if (menu) menu.classList.add('hidden');
+        changeVoiceLanguage(lang);
+    }
+
+    function updateActiveLanguageUI(langName) {
+        const cfg = INDIAN_LANG_CONFIG[langName] || INDIAN_LANG_CONFIG['English'];
+        const flagEl = document.getElementById('tutor-lang-flag');
+        const nameEl = document.getElementById('tutor-lang-name');
+        if (flagEl) flagEl.innerText = cfg.flag || '🇮🇳';
+        if (nameEl) nameEl.innerText = cfg.label || langName;
+
+        DivaVoice.activeLanguage = langName;
+        if (typeof recognition !== 'undefined' && recognition) {
+            recognition.lang = cfg.code;
+        }
+    }
+
+    function syncVoicePlayerLanguageUI() {
+        const activeLang = getActiveLanguage();
+        updateActiveLanguageUI(activeLang);
+    }
+
+    function changeVoiceLanguage(lang) {
+        document.cookie = "preferred_language=" + encodeURIComponent(lang) + "; path=/; max-age=31536000";
+        syncVoicePlayerLanguageUI();
+        if (typeof initSpeechSynthesis === 'function') initSpeechSynthesis();
+        const navSel = document.getElementById('languageSelector');
+        if (navSel) navSel.value = lang;
+    }
+
+    // Close language menu on clicking outside
+    document.addEventListener('click', (e) => {
+        const menu = document.getElementById('tutor-lang-menu');
+        const btn = document.getElementById('tutor-lang-badge-btn');
+        if (menu && !menu.classList.contains('hidden') && btn && !btn.contains(e.target) && !menu.contains(e.target)) {
+            menu.classList.add('hidden');
+        }
+    });
+
+    let activeSecIdx = 0;
+    let viewedSections = new Set();
+    let quizSelectedAnswers = {}; // Map of questionId -> optionIndex
+
+    // ── Configure Mermaid.js for modern interactive flowcharts ──
+    if (typeof mermaid !== 'undefined') {
+        try {
+            mermaid.initialize({
+                startOnLoad: false,
+                theme: 'dark',
+                themeVariables: {
+                    darkMode: true,
+                    background: '#0b0f19',
+                    primaryColor: '#6366f1',
+                    primaryTextColor: '#f8fafc',
+                    primaryBorderColor: '#818cf8',
+                    lineColor: '#38bdf8',
+                    secondaryColor: '#0f172a',
+                    tertiaryColor: '#1e1b4b'
+                }
+            });
+        } catch (e) {
+            console.warn("Mermaid init notice:", e);
+        }
+    }
+
+    // ── Configure Marked Renderer for Mermaid & Code blocks ──
+    const customRenderer = new marked.Renderer();
+    const defaultCodeRenderer = customRenderer.code.bind(customRenderer);
+    customRenderer.code = function(code, language) {
+        if (language === 'mermaid') {
+            return `<div class="mermaid">${code}</div>`;
+        }
+        return defaultCodeRenderer(code, language);
+    };
+    marked.setOptions({ renderer: customRenderer, breaks: true });
+
+    // ── Universal Numeral & Code Normalizer (All Languages & Scripts) ──
+    function normalizeNumeralsClient(text) {
+        if (!text) return "";
+        const numeralMap = {
+            '०':'0','१':'1','२':'2','३':'3','४':'4','५':'5','६':'6','७':'7','८':'8','९':'9',
+            '٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9',
+            '۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9',
+            '௦':'0','௧':'1','௨':'2','௩':'3','௪':'4','௫':'5','௬':'6','௭':'7','௮':'8','௯':'9',
+            '౦':'0','౧':'1','౨':'2','౩':'3','౪':'4','౫':'5','౬':'6','౭':'7','౮':'8','౯':'9',
+            '০':'0','১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9'
+        };
+        return text.replace(/[०-९٠-٩۰-۹௦-௯౦-౯০-৯]/g, m => numeralMap[m] || m);
+    }
+
+    // ── Auto-Fence ASCII Art / Box Diagrams ──
+    function autoFenceAsciiArtClient(markdownText) {
+        if (!markdownText) return "";
+        if (markdownText.includes('\\n')) {
+            markdownText = markdownText.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+        }
+        markdownText = markdownText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        markdownText = normalizeNumeralsClient(markdownText);
+        const lines = markdownText.split("\n");
+        const newLines = [];
+        let inCodeBlock = false;
+        let asciiBuffer = [];
+
+        function isAsciiLine(line) {
+            const t = line.trim();
+            if (!t) return false;
+            if (/^\|[^|]+\|.*\|$/.test(t)) return false; // markdown table
+            if (/^\+[-+=]+\+.*$/.test(t)) return true;
+            if ((t.includes("| ----") || t.includes("| --->") || t.includes("+ --->") || t.includes("---->")) && (t.includes("|") || t.includes("+"))) return true;
+            if (t.startsWith("+--") || t.endsWith("--+")) return true;
+            return false;
+        }
+
+        for (const line of lines) {
+            if (line.trim().startsWith("```")) {
+                if (asciiBuffer.length > 0) {
+                    newLines.push("```text");
+                    newLines.push(...asciiBuffer);
+                    newLines.push("```");
+                    asciiBuffer = [];
+                }
+                inCodeBlock = !inCodeBlock;
+                newLines.push(line);
+                continue;
+            }
+            if (inCodeBlock) {
+                newLines.push(line);
+                continue;
+            }
+            if (isAsciiLine(line)) {
+                asciiBuffer.push(line);
+            } else {
+                if (asciiBuffer.length > 0) {
+                    newLines.push("```text");
+                    newLines.push(...asciiBuffer);
+                    newLines.push("```");
+                    asciiBuffer = [];
+                }
+                newLines.push(line);
+            }
+        }
+        if (asciiBuffer.length > 0) {
+            newLines.push("```text");
+            newLines.push(...asciiBuffer);
+            newLines.push("```");
+        }
+        return newLines.join("\n");
+    }
+
+    // ── Voice & Audio Visualizer State ──
+    let voiceTTSEnabled = true;
+    let isListening = false;
+    let isSpeaking = false;
+    let recognition = null;
+    let voiceChartCanvas = null;
+    let voiceChartCtx = null;
+    let animationFrameId = null;
+    let voiceChartActive = true;
+    let preferredDivaVoice = null;
+
+    function safeCreateIcons() {
+        try {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        } catch (e) {
+            console.warn("Lucide icons failed to load or render:", e);
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        // Sync voice player language UI with cookie
+        syncVoicePlayerLanguageUI();
+
+        // Load first section
+        setActiveSection(0);
+        
+        // Initialize Voice Visualizers and Speech Synthesis
+        initVoiceChartVisualizer();
+        initPlayerSpectrum();
+        initSpeechSynthesis();
+        initSpeechRecognition();
+    });
+
+    function setActiveSection(idx) {
+        if (idx < 0 || idx >= sections.length) return;
+        activeSecIdx = idx;
+        viewedSections.add(idx);
+        
+        // Hide other panels
+        document.getElementById('subtopic-panel').classList.remove('hidden');
+        document.getElementById('quiz-panel').classList.add('hidden');
+        document.getElementById('remediation-panel').classList.add('hidden');
+
+        // Toggle Active styles on TOC
+        for (let i = 0; i < sections.length; i++) {
+            const btn = document.getElementById(`toc-btn-${i}`);
+            if (btn) {
+                if (i === idx) {
+                    btn.className = "w-full flex items-center justify-between text-left p-3 rounded-xl border border-brand-500 bg-brand-500/10 text-white transition-all duration-200";
+                } else {
+                    btn.className = "w-full flex items-center justify-between text-left p-3 rounded-xl border border-white/5 bg-dark-900/40 hover:bg-white/5 transition-all duration-200";
+                }
+            }
+            
+            // Mark viewed icons
+            const tocCheck = document.getElementById(`toc-check-${i}`);
+            if (tocCheck && viewedSections.has(i)) {
+                tocCheck.innerHTML = '<i data-lucide="check" class="w-3 h-3 text-emerald-400"></i>';
+            }
+        }
+        document.getElementById('toc-btn-quiz').classList.remove('border-brand-500', 'bg-brand-500/20');
+        document.getElementById('toc-btn-quiz').classList.add('border-brand-500/20', 'bg-brand-500/10');
+
+        const sec = sections[idx];
+        document.getElementById('section-badge').innerText = `Section ${idx + 1} of ${sections.length}`;
+        document.getElementById('section-title').innerText = sec.title;
+        
+        // Format & render markdown with auto-fenced ASCII and Mermaid
+        const rawContent = sec.content || '';
+        const safeMarkdown = autoFenceAsciiArtClient(rawContent);
+        document.getElementById('section-markdown-content').innerHTML = marked.parse(safeMarkdown);
+        
+        // Enhance all code blocks with 1-click Copy and Run in Runner buttons
+        decorateCodeBlocks();
+
+        // Render any Mermaid flowcharts/diagrams
+        if (typeof mermaid !== 'undefined') {
+            setTimeout(() => {
+                const nodes = document.querySelectorAll('#section-markdown-content .mermaid');
+                if (nodes.length > 0) {
+                    mermaid.run({ nodes: nodes }).catch(err => console.warn("Mermaid render notice:", err));
+                }
+            }, 60);
+        }
+        
+        // Example box
+        if (sec.example) {
+            document.getElementById('section-example-box').classList.remove('hidden');
+            document.getElementById('section-example-content').innerText = sec.example;
+        } else {
+            document.getElementById('section-example-box').classList.add('hidden');
+        }
+
+        // Update Prev / Next button states
+        const prevBtn = document.getElementById('prev-sec-btn');
+        const nextBtn = document.getElementById('next-sec-btn');
+        const nextText = document.getElementById('next-sec-text');
+
+        if (idx === 0) {
+            prevBtn.classList.add('opacity-40', 'pointer-events-none');
+        } else {
+            prevBtn.classList.remove('opacity-40', 'pointer-events-none');
+        }
+
+        if (idx === sections.length - 1) {
+            nextText.innerText = "Proceed to Mastery Quiz";
+        } else {
+            nextText.innerText = "Next Section";
+        }
+
+        // Render 3 Practice MCQs for this section
+        renderSectionMCQs(idx);
+
+        safeCreateIcons();
+    }
+
+    // ── Module Practice MCQs (3 questions per section) ──
+    let sectionMCQState = {}; // Key: `${secIdx}_${qIdx}` -> { selectedChoice: int, isCorrect: bool }
+
+    function renderSectionMCQs(secIdx) {
+        const container = document.getElementById('section-mcq-list');
+        const badge = document.getElementById('mcq-status-badge');
+        if (!container) return;
+
+        const sec = sections[secIdx];
+        if (!sec) return;
+
+        const mcqs = sec.mcqQuestions || [];
+        if (mcqs.length === 0) {
+            document.getElementById('section-mcq-box').classList.add('hidden');
+            return;
+        }
+        document.getElementById('section-mcq-box').classList.remove('hidden');
+
+        let answeredCount = 0;
+        let correctCount = 0;
+        container.innerHTML = '';
+
+        const optionLetters = ['A', 'B', 'C', 'D'];
+
+        mcqs.forEach((mcq, qIdx) => {
+            const stateKey = `${secIdx}_${qIdx}`;
+            const state = sectionMCQState[stateKey];
+            const hasAnswered = state !== undefined;
+            if (hasAnswered) {
+                answeredCount++;
+                if (state.isCorrect) correctCount++;
+            }
+
+            let optionsHtml = '';
+
+            mcq.options.forEach((opt, oIdx) => {
+                let btnStyle = 'border-white/10 hover:bg-white/5 hover:border-brand-500/30 text-gray-300';
+                let letterStyle = 'bg-white/10 text-gray-400 border-white/10 group-hover:bg-brand-500/20 group-hover:text-brand-300';
+                let checkIcon = '';
+
+                if (hasAnswered) {
+                    if (oIdx === mcq.correctIndex) {
+                        btnStyle = 'border-emerald-500 bg-emerald-500/15 text-emerald-200 font-semibold shadow-lg shadow-emerald-500/10';
+                        letterStyle = 'bg-emerald-500 text-dark-950 font-bold border-emerald-400';
+                        checkIcon = '<i data-lucide="check-circle" class="w-4 h-4 text-emerald-400 ml-auto flex-shrink-0"></i>';
+                    } else if (state.selectedChoice === oIdx && !state.isCorrect) {
+                        btnStyle = 'border-rose-500 bg-rose-500/15 text-rose-200 font-medium';
+                        letterStyle = 'bg-rose-500 text-white font-bold border-rose-400';
+                        checkIcon = '<i data-lucide="x-circle" class="w-4 h-4 text-rose-400 ml-auto flex-shrink-0"></i>';
+                    } else {
+                        btnStyle = 'border-white/5 opacity-40 text-gray-500';
+                    }
+                }
+
+                const clickHandler = hasAnswered ? '' : `onclick="selectSectionMCQOption(${secIdx}, ${qIdx}, ${oIdx})"`;
+
+                optionsHtml += `
+                    <button type="button" ${clickHandler} class="w-full flex items-center p-3.5 rounded-xl border ${btnStyle} transition-all duration-200 text-left text-xs md:text-sm group ${hasAnswered ? 'cursor-default' : 'cursor-pointer'}">
+                        <span class="w-6 h-6 rounded-lg ${letterStyle} flex items-center justify-center text-xs font-bold mr-3 flex-shrink-0 border transition">
+                            ${optionLetters[oIdx] || (oIdx + 1)}
+                        </span>
+                        <span class="flex-grow">${opt}</span>
+                        ${checkIcon}
+                    </button>
+                `;
+            });
+
+            // Explanation / feedback card
+            let explanationHtml = '';
+            if (hasAnswered) {
+                const expBorder = state.isCorrect ? 'border-emerald-500/30 bg-emerald-950/40 text-emerald-300' : 'border-rose-500/30 bg-rose-950/30 text-rose-300';
+                const statusTitle = state.isCorrect ? '✓ Correct Answer!' : '✗ Needs review';
+                explanationHtml = `
+                    <div class="p-3.5 rounded-xl border ${expBorder} text-xs space-y-1 mt-2">
+                        <div class="font-bold flex items-center space-x-1.5">
+                            <span>${statusTitle}</span>
+                        </div>
+                        <p class="text-gray-300 leading-relaxed text-[11px] md:text-xs">${mcq.explanation || 'Key concept reinforced for this module.'}</p>
+                    </div>
+                `;
+            }
+
+            container.innerHTML += `
+                <div class="p-5 rounded-2xl bg-dark-900/60 border border-white/5 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-brand-400">
+                                Question ${qIdx + 1} of ${mcqs.length}
+                            </span>
+                            <button onclick="narrateMcq(${secIdx}, ${qIdx})" class="bg-brand-600/15 hover:bg-brand-600/25 text-brand-300 border border-brand-500/20 px-2 py-0.5 rounded text-[10px] font-semibold flex items-center space-x-1 transition cursor-pointer" title="Listen to question in Diva Voice">
+                                <i data-lucide="volume-2" class="w-3 h-3"></i>
+                                <span>Listen</span>
+                            </button>
+                        </div>
+                        ${hasAnswered ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${state.isCorrect ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}">${state.isCorrect ? '+10 XP Earned' : 'Reviewed'}</span>` : ''}
+                    </div>
+                    <p class="text-sm font-semibold text-white leading-snug">${mcq.question}</p>
+                    <div class="grid grid-cols-1 gap-2.5 pt-1">
+                        ${optionsHtml}
+                    </div>
+                    ${explanationHtml}
+                </div>
+            `;
+        });
+
+        // Update status badge
+        if (badge) {
+            if (answeredCount === mcqs.length) {
+                badge.innerText = `Score: ${correctCount} / ${mcqs.length} Correct`;
+                badge.className = "text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30";
+            } else {
+                badge.innerText = `${answeredCount} of ${mcqs.length} Answered`;
+                badge.className = "text-xs font-semibold px-3 py-1 rounded-full bg-brand-500/10 text-brand-300 border border-brand-500/20";
+            }
+        }
+
+        safeCreateIcons();
+    }
+
+    function selectSectionMCQOption(secIdx, qIdx, oIdx) {
+        const sec = sections[secIdx];
+        if (!sec || !sec.mcqQuestions) return;
+        const mcq = sec.mcqQuestions[qIdx];
+        if (!mcq) return;
+
+        const isCorrect = (oIdx === mcq.correctIndex);
+        const stateKey = `${secIdx}_${qIdx}`;
+        sectionMCQState[stateKey] = {
+            selectedChoice: oIdx,
+            isCorrect: isCorrect
+        };
+
+        renderSectionMCQs(secIdx);
+    }
+
+    function prevSection() {
+        if (activeSecIdx > 0) {
+            setActiveSection(activeSecIdx - 1);
+            document.getElementById('content-pane').scrollTop = 0;
+        }
+    }
+
+    function nextSection() {
+        if (activeSecIdx < sections.length - 1) {
+            setActiveSection(activeSecIdx + 1);
+            document.getElementById('content-pane').scrollTop = 0;
+        } else {
+            showQuizSection();
+        }
+    }
+
+    function askTutorAboutCurrentTopic() {
+        const sec = sections[activeSecIdx];
+        const topicName = sec ? sec.title : "{{ lesson.title }}";
+        
+        // Ensure tutor drawer is open
+        const drawer = document.getElementById('tutor-drawer');
+        if (drawer.classList.contains('translate-x-full')) {
+            toggleTutorDrawer();
+        }
+        
+        const prompt = `Can you explain "${topicName}" in simple terms with a key example?`;
+        appendChatMessage('user', prompt);
+        callTutorAPI(prompt);
+    }
+
+    function showQuizSection() {
+        // Deselect TOC
+        for (let i = 0; i < sections.length; i++) {
+            const btn = document.getElementById(`toc-btn-${i}`);
+            if (btn) btn.className = "w-full flex items-center justify-between text-left p-3 rounded-xl border border-white/5 bg-dark-900/40 hover:bg-white/5 transition-all duration-200";
+        }
+        const qBtn = document.getElementById('toc-btn-quiz');
+        qBtn.className = "w-full flex items-center justify-between text-left p-3.5 rounded-xl border border-brand-500 bg-brand-500/20 text-white transition-all duration-200";
+
+        document.getElementById('subtopic-panel').classList.add('hidden');
+        document.getElementById('remediation-panel').classList.add('hidden');
+        document.getElementById('flashcard-panel').classList.add('hidden');
+        document.getElementById('quiz-panel').classList.remove('hidden');
+        document.getElementById('content-pane').scrollTop = 0;
+
+        renderQuiz();
+    }
+
+    // ── Active Recall & Concept Flashcards ──
+    let flashcards = [];
+    let currentCardIdx = 0;
+    let cardFlipped = false;
+    let masteredCards = new Set();
+
+    function initFlashcards() {
+        flashcards = [];
+        currentCardIdx = 0;
+        cardFlipped = false;
+        masteredCards.clear();
+        
+        sections.forEach((sec, sIdx) => {
+            flashcards.push({
+                category: "CORE PRINCIPLE",
+                front: `What is the core intuition behind "${sec.title}"?`,
+                back: `In Diva Ideas architecture, ${sec.title} focuses on mastering the underlying mental model, parameter syntax, and execution flow.`,
+                code: sec.example ? sec.example.substring(0, 160) : ""
+            });
+            
+            if (sec.mcqQuestions && sec.mcqQuestions.length > 0) {
+                sec.mcqQuestions.forEach((q, qIdx) => {
+                    const correctOpt = q.options[q.correctIndex] || "Correct Principle";
+                    flashcards.push({
+                        category: "DIAGNOSTIC RECALL",
+                        front: q.question,
+                        back: `✅ Answer: ${correctOpt}\n\n💡 ${q.explanation || 'Key engineering concept.'}`,
+                        code: ""
+                    });
+                });
+            }
+        });
+
+        if (flashcards.length === 0) {
+            flashcards.push({
+                category: "SUMMARY",
+                front: `Key takeaways for {{ lesson.title }}`,
+                back: `Review the syntax blueprint, time complexity bounds, and enterprise patterns.`,
+                code: ""
+            });
+        }
+    }
+
+    function showFlashcardsSection() {
+        if (flashcards.length === 0) initFlashcards();
+        
+        for (let i = 0; i < sections.length; i++) {
+            const btn = document.getElementById(`toc-btn-${i}`);
+            if (btn) btn.className = "w-full flex items-center justify-between text-left p-3 rounded-xl border border-white/5 bg-dark-900/40 hover:bg-white/5 transition-all duration-200";
+        }
+        const qBtn = document.getElementById('toc-btn-quiz');
+        if (qBtn) qBtn.className = "w-full flex items-center justify-between text-left p-3.5 rounded-xl border border-brand-500/20 bg-brand-500/10 hover:bg-brand-500/20 transition-all duration-200";
+        
+        const fcBtn = document.getElementById('toc-btn-flashcards');
+        if (fcBtn) fcBtn.className = "w-full flex items-center justify-between text-left p-3.5 rounded-xl border border-purple-500 bg-purple-500/20 text-white transition-all duration-200";
+
+        document.getElementById('subtopic-panel').classList.add('hidden');
+        document.getElementById('quiz-panel').classList.add('hidden');
+        document.getElementById('remediation-panel').classList.add('hidden');
+        document.getElementById('flashcard-panel').classList.remove('hidden');
+        document.getElementById('content-pane').scrollTop = 0;
+
+        renderFlashcard();
+    }
+
+    function renderFlashcard() {
+        if (flashcards.length === 0) return;
+        const card = flashcards[currentCardIdx];
+        cardFlipped = false;
+
+        const inner = document.getElementById('flashcard-inner');
+        if (inner) inner.classList.remove('flashcard-flipped');
+
+        document.getElementById('card-index-indicator').innerText = `Card ${currentCardIdx + 1} of ${flashcards.length}`;
+        document.getElementById('card-front-category').innerText = card.category || 'CONCEPT RECALL';
+        document.getElementById('card-front-text').innerText = card.front;
+        document.getElementById('card-back-text').innerText = card.back;
+
+        const codeEl = document.getElementById('card-back-code');
+        if (card.code && card.code.trim()) {
+            codeEl.classList.remove('hidden');
+            codeEl.innerText = card.code;
+        } else {
+            codeEl.classList.add('hidden');
+        }
+
+        const dotsContainer = document.getElementById('card-dots-container');
+        if (dotsContainer) {
+            dotsContainer.innerHTML = flashcards.map((_, i) => {
+                let color = 'bg-white/20';
+                if (i === currentCardIdx) color = 'bg-brand-500 w-4';
+                else if (masteredCards.has(i)) color = 'bg-emerald-400';
+                return `<div class="h-1.5 w-1.5 rounded-full ${color} transition-all duration-300"></div>`;
+            }).join('');
+        }
+
+        const prevBtn = document.getElementById('card-prev-btn');
+        if (currentCardIdx === 0) {
+            prevBtn.classList.add('opacity-40', 'pointer-events-none');
+        } else {
+            prevBtn.classList.remove('opacity-40', 'pointer-events-none');
+        }
+
+        safeCreateIcons();
+    }
+
+    function flipCurrentFlashcard() {
+        const inner = document.getElementById('flashcard-inner');
+        if (!inner) return;
+        cardFlipped = !cardFlipped;
+        if (cardFlipped) {
+            inner.classList.add('flashcard-flipped');
+        } else {
+            inner.classList.remove('flashcard-flipped');
+        }
+    }
+
+    function rateCurrentCard(rating, event) {
+        if (event) event.stopPropagation();
+        if (rating === 'mastered') {
+            masteredCards.add(currentCardIdx);
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 35,
+                    spread: 60,
+                    origin: { y: 0.7 }
+                });
+            }
+        }
+        if (currentCardIdx < flashcards.length - 1) {
+            setTimeout(() => nextFlashcard(), 250);
+        } else {
+            renderFlashcard();
+        }
+    }
+
+    function nextFlashcard() {
+        if (currentCardIdx < flashcards.length - 1) {
+            currentCardIdx++;
+            renderFlashcard();
+        } else {
+            alert("🎉 Awesome! You completed all flashcards in this module. Ready for the Mastery Quiz!");
+            showQuizSection();
+        }
+    }
+
+    function prevFlashcard() {
+        if (currentCardIdx > 0) {
+            currentCardIdx--;
+            renderFlashcard();
+        }
+    }
+
+    // ── Consolidated Study Guide Modal ──
+    function openStudyGuideModal() {
+        const modal = document.getElementById('study-guide-modal');
+        const content = document.getElementById('study-guide-content');
+        if (!modal || !content) return;
+
+        let combinedMarkdown = `# 📖 {{ lesson.title }} — Complete Study Guide\n\n`;
+        combinedMarkdown += `*Domain: {{ lesson.learning_path.domain_name if lesson.learning_path else 'Computer Science' }} | Level: {{ lesson.tier }}*\n\n---\n\n`;
+
+        sections.forEach((sec, idx) => {
+            combinedMarkdown += `## Section ${idx + 1}: ${sec.title}\n\n`;
+            combinedMarkdown += `${autoFenceAsciiArtClient(sec.content || '')}\n\n`;
+            if (sec.example) {
+                combinedMarkdown += `### 💻 Worked Example\n\`\`\`text\n${sec.example}\n\`\`\`\n\n`;
+            }
+            combinedMarkdown += `---\n\n`;
+        });
+
+        content.innerHTML = marked.parse(combinedMarkdown);
+
+        if (typeof mermaid !== 'undefined') {
+            setTimeout(() => {
+                const nodes = content.querySelectorAll('.mermaid');
+                if (nodes.length > 0) {
+                    mermaid.run({ nodes: nodes }).catch(e => console.warn(e));
+                }
+            }, 50);
+        }
+
+        modal.classList.remove('hidden');
+        safeCreateIcons();
+    }
+
+    function closeStudyGuideModal() {
+        const modal = document.getElementById('study-guide-modal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    // ── Download & Export Helpers ──
+    function downloadLessonPDF() {
+        window.location.href = "{{ url_for('learning.lesson_download_pdf', progress_id=lesson.id) }}";
+    }
+
+    // ── 1-Click Code Runner & Copy Decorator ──
+    function decorateCodeBlocks() {
+        const preBlocks = document.querySelectorAll('#section-markdown-content pre');
+        preBlocks.forEach((pre) => {
+            if (pre.dataset.decorated === "true") return;
+            pre.dataset.decorated = "true";
+            pre.classList.add('relative', 'group');
+
+            const code = pre.querySelector('code');
+            const codeText = code ? code.innerText : pre.innerText;
+
+            let lang = "CODE";
+            if (code && code.className) {
+                const m = code.className.match(/language-([a-zA-Z0-9_-]+)/);
+                if (m) lang = m[1].toUpperCase();
+            }
+
+            const toolbar = document.createElement('div');
+            toolbar.className = "absolute top-2.5 right-2.5 flex items-center space-x-1.5 opacity-80 group-hover:opacity-100 transition-opacity z-10 select-none";
+            toolbar.innerHTML = `
+                <span class="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-white/10 text-gray-400 border border-white/10 uppercase tracking-wider">${lang}</span>
+                <button type="button" class="copy-code-btn text-[10px] font-semibold bg-dark-900/90 hover:bg-dark-800 text-gray-300 hover:text-white border border-white/10 hover:border-brand-500/40 px-2 py-1 rounded-lg flex items-center space-x-1 transition shadow cursor-pointer" title="Copy code">
+                    <i data-lucide="copy" class="w-3 h-3"></i>
+                    <span>Copy</span>
+                </button>
+                <button type="button" class="run-code-btn text-[10px] font-semibold bg-emerald-600/90 hover:bg-emerald-500 text-white px-2.5 py-1 rounded-lg flex items-center space-x-1 transition shadow-lg shadow-emerald-500/20 cursor-pointer" title="Run code in live runner">
+                    <i data-lucide="play" class="w-3 h-3 fill-current"></i>
+                    <span>Run</span>
+                </button>
+            `;
+
+            const copyBtn = toolbar.querySelector('.copy-code-btn');
+            copyBtn.onclick = (e) => {
+                e.stopPropagation();
+                navigator.clipboard.writeText(codeText);
+                const span = copyBtn.querySelector('span');
+                span.innerText = "Copied!";
+                copyBtn.classList.add('text-emerald-400', 'border-emerald-500/40');
+                setTimeout(() => {
+                    span.innerText = "Copy";
+                    copyBtn.classList.remove('text-emerald-400', 'border-emerald-500/40');
+                }, 2000);
+            };
+
+            const runBtn = toolbar.querySelector('.run-code-btn');
+            runBtn.onclick = (e) => {
+                e.stopPropagation();
+                sendCodeToRunner(codeText, lang);
+            };
+
+            pre.appendChild(toolbar);
+        });
+        safeCreateIcons();
+    }
+
+    function sendCodeToRunner(codeStr, codeLang) {
+        if (!codeStr || !codeStr.trim()) return;
+
+        // 1. Detect & set appropriate programming language
+        const langSelect = document.getElementById('drawer-lang-select');
+        if (langSelect) {
+            let detected = (codeLang || "").toLowerCase().trim();
+            if (!detected || detected === "code" || detected === "text") {
+                const domainStr = "{{ lesson.learning_path.domain }}".toLowerCase();
+                if (domainStr.includes("python")) detected = "python";
+                else if (domainStr.includes("sql")) detected = "sql";
+                else if (domainStr.includes("rust")) detected = "rust";
+                else if (domainStr.includes("go") || domainStr.includes("golang")) detected = "go";
+                else if (domainStr.includes("c++") || domainStr.includes("cpp")) detected = "c++";
+                else if (domainStr.includes("typescript") || domainStr.includes("ts")) detected = "typescript";
+                else if (domainStr.includes("javascript") || domainStr.includes("js") || domainStr.includes("node") || domainStr.includes("react")) detected = "javascript";
+                else if (domainStr.includes("java")) detected = "java";
+                else if (domainStr.includes(" c ") || domainStr.endsWith(" c")) detected = "c";
+                else detected = "python";
+            }
+            // Normalize aliases
+            if (detected === "py" || detected === "python3") detected = "python";
+            if (detected === "js" || detected === "node") detected = "javascript";
+            if (detected === "ts") detected = "typescript";
+            if (detected === "cpp") detected = "c++";
+            if (detected === "rs") detected = "rust";
+            if (detected === "golang") detected = "go";
+
+            // Check if select has this option
+            const hasOption = Array.from(langSelect.options).some(opt => opt.value === detected);
+            if (hasOption) {
+                langSelect.value = detected;
+            }
+        }
+
+        // 2. Put cleaned code into editor
+        const codeEditor = document.getElementById('drawer-code-editor');
+        if (codeEditor) {
+            codeEditor.value = cleanCodeSnippet(codeStr);
+        }
+
+        // 3. Open runner drawer if currently closed
+        const runnerDrawer = document.getElementById('runner-drawer');
+        if (runnerDrawer && runnerDrawer.classList.contains('translate-x-full')) {
+            toggleRunnerDrawer();
+        }
+
+        // 4. Immediately execute code and display results
+        runDrawerCode();
+    }
+
+    function renderQuiz() {
+        const container = document.getElementById('quiz-questions-list');
+        container.innerHTML = '';
+        clientQuiz.forEach((q, qidx) => {
+            let optionsHtml = '';
+            q.options.forEach((opt, oidx) => {
+                const isSelected = quizSelectedAnswers[q.id] === oidx;
+                const borderClass = isSelected ? 'border-brand-500 bg-brand-500/10' : 'border-white/10 hover:bg-white/5';
+                const dotClass = isSelected ? 'bg-brand-500 border-brand-500' : 'border-white/20';
+                optionsHtml += `
+                    <button onclick="selectQuizOption('${q.id}', ${oidx})" class="w-full flex items-center justify-between text-left p-4 rounded-xl border ${borderClass} transition-all duration-200">
+                        <span class="text-gray-300 text-sm">${opt}</span>
+                        <div class="w-4 h-4 rounded-full border flex items-center justify-center ${dotClass} flex-shrink-0 ml-4">
+                            ${isSelected ? '<div class="w-2 h-2 rounded-full bg-white"></div>' : ''}
+                        </div>
+                    </button>
+                `;
+            });
+
+            container.innerHTML += `
+                <div class="glass p-6 rounded-2xl border shadow-xl space-y-4">
+                    <span class="text-xs font-semibold text-gray-400">Question ${qidx + 1}</span>
+                    <h3 class="font-bold text-white text-lg">${q.question}</h3>
+                    <div class="grid grid-cols-1 gap-3 mt-4">
+                        ${optionsHtml}
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function selectQuizOption(qId, oIdx) {
+        quizSelectedAnswers[qId] = oIdx;
+        renderQuiz();
+    }
+
+    function submitQuiz() {
+        const total = clientQuiz.length;
+        const answersSubmitted = Object.keys(quizSelectedAnswers).length;
+        if (answersSubmitted < total) {
+            alert("Please answer all questions before submitting.");
+            return;
+        }
+
+        const formatted = Object.keys(quizSelectedAnswers).map(k => ({
+            id: k,
+            selectedIndex: quizSelectedAnswers[k]
+        }));
+
+        fetch(`/learning/lesson/{{ lesson.id }}/submit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ answers: formatted })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.passed) {
+                // Confetti trigger
+                try {
+                    confetti({
+                        particleCount: 100,
+                        spread: 70,
+                        origin: { y: 0.6 }
+                    });
+                } catch(e){}
+                alert(`Congratulations! You passed with ${data.score}%!`);
+                window.location.href = "{{ url_for('learning.roadmap_view', path_id=lesson.learning_path_id) }}";
+            } else {
+                // Failed, display remediation
+                document.getElementById('quiz-panel').classList.add('hidden');
+                document.getElementById('remediation-panel').classList.remove('hidden');
+                document.getElementById('remediation-text').innerHTML = marked.parse(data.remediation.remediationText);
+                
+                // Update quiz variable to load the retry quiz
+                clientQuiz.length = 0;
+                data.retryQuiz.forEach(q => clientQuiz.push(q));
+                quizSelectedAnswers = {};
+                document.getElementById('content-pane').scrollTop = 0;
+            }
+        })
+        .catch(err => alert("Failed to submit quiz."));
+    }
+
+    function startRetry() {
+        document.getElementById('remediation-panel').classList.add('hidden');
+        document.getElementById('quiz-panel').classList.remove('hidden');
+        renderQuiz();
+    }
+
+    function askTutorAboutCurrentTopic() {
+        const drawer = document.getElementById('tutor-drawer');
+        if (drawer && drawer.classList.contains('translate-x-full')) {
+            toggleTutorDrawer();
+        }
+        const input = document.getElementById('tutor-input');
+        if (input) {
+            input.focus();
+            const sec = (typeof sections !== 'undefined' && sections[activeSecIdx]) ? sections[activeSecIdx] : null;
+            if (sec && !input.value) {
+                input.placeholder = `Ask Diva AI about "${sec.title}"...`;
+            }
+        }
+    }
+
+    // ── AI Tutor Drawer toggle ──
+    function toggleTutorDrawer() {
+        const drawer = document.getElementById('tutor-drawer');
+        const floatingActions = document.getElementById('floating-actions');
+        const isClosed = drawer.classList.contains('translate-x-full');
+        
+        if (isClosed) {
+            // Close code runner drawer if open
+            const runnerDrawer = document.getElementById('runner-drawer');
+            if (!runnerDrawer.classList.contains('translate-x-full')) {
+                runnerDrawer.classList.add('translate-x-full');
+            }
+            drawer.classList.remove('translate-x-full');
+            // Hide floating action buttons
+            floatingActions.classList.add('opacity-0', 'pointer-events-none', 'translate-x-12');
+            setTimeout(() => document.getElementById('tutor-input').focus(), 250);
+        } else {
+            drawer.classList.add('translate-x-full');
+            // Stop speech when drawer closes
+            stopAllSpeech();
+            // Show floating action buttons again
+            floatingActions.classList.remove('opacity-0', 'pointer-events-none', 'translate-x-12');
+        }
+        safeCreateIcons();
+    }
+
+    function sendTutorMessage() {
+        const input = document.getElementById('tutor-input');
+        const message = input.value.trim();
+        if (message === '') return;
+
+        // If currently recognizing speech, stop it
+        if (isListening && recognition) {
+            recognition.stop();
+        }
+
+        appendChatMessage('user', message);
+        input.value = '';
+
+        callTutorAPI(message);
+    }
+
+    function sendQuickAction(action) {
+        appendChatMessage('user', `Quick Action: ${action.replace('_', ' ')}`);
+        callTutorAPI(`Perform action: ${action}`, action);
+    }
+
+    function callTutorAPI(msg, action = null, overrideLang = null) {
+        const historyDiv = document.getElementById('chat-history');
+        // Add loading block
+        const loadId = `load-${Date.now()}`;
+        historyDiv.innerHTML += `
+            <div id="${loadId}" class="bg-brand-500/5 border border-brand-500/10 rounded-2xl p-4 text-gray-300 animate-pulse text-xs flex items-center space-x-2">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-brand-400 animate-spin"></i>
+                <span>Diva is thinking...</span>
+            </div>
+        `;
+        safeCreateIcons();
+        historyDiv.scrollTop = historyDiv.scrollHeight;
+
+        const activeLang = overrideLang || getActiveLanguage();
+        updateVoiceStatus("thinking", `Diva is analyzing in ${activeLang}...`);
+
+        fetch('/tutor/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                learningPathId: "{{ lesson.learning_path_id }}",
+                message: msg,
+                quickAction: action,
+                language: activeLang
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            const loadEl = document.getElementById(loadId);
+            if (loadEl) loadEl.remove();
+            const reply = data.reply || "I am ready to help.";
+            const targetLang = data.language || activeLang;
+
+            // Automatically update language badge to the detected language (e.g. Tamil -> தமிழ், Telugu -> తెలుగు)
+            updateActiveLanguageUI(targetLang);
+
+            const msgId = `msg-${Date.now()}-${Math.floor(Math.random()*1000)}`;
+            appendChatMessage('bot', reply, targetLang, msgId);
+            
+            // Speak response in the detected target language if voice TTS is enabled
+            if (voiceTTSEnabled) {
+                DivaVoice.speakText(reply, targetLang, msgId);
+            } else {
+                updateVoiceStatus("idle", "Voice Ready • Click Mic or type");
+            }
+        })
+        .catch(err => {
+            const loadEl = document.getElementById(loadId);
+            if (loadEl) loadEl.remove();
+            appendChatMessage('bot', 'An error occurred while connecting to Diva AI Tutor.');
+            updateVoiceStatus("idle", "Ready to talk");
+        });
+    }
+
+    function appendChatMessage(sender, text, lang = null, explicitMsgId = null) {
+        const historyDiv = document.getElementById('chat-history');
+        const isUser = sender === 'user';
+        const classes = isUser ? 'bg-brand-600 text-white self-end ml-6' : 'bg-white/5 border border-white/5 text-gray-300 mr-2 max-w-full overflow-hidden break-words';
+        const msgId = explicitMsgId || `msg-${Date.now()}-${Math.floor(Math.random()*1000)}`;
+        const effectiveLang = lang || getActiveLanguage();
+        
+        let audioBtnHtml = '';
+        if (!isUser) {
+            const cleanText = escapeQuotesForJS(stripMarkdownForTTS(text));
+            const cfg = INDIAN_LANG_CONFIG[effectiveLang] || INDIAN_LANG_CONFIG['English'];
+            audioBtnHtml = `
+                <div class="flex items-center justify-between pt-2 mt-2 border-t border-white/5 text-[11px]">
+                    <span class="text-brand-400 font-medium flex items-center gap-1">
+                        <i data-lucide="sparkles" class="w-3 h-3"></i> Diva AI (${cfg.label})
+                    </span>
+                    <button id="listen-btn-${msgId}" onclick="toggleListenMessage('${msgId}', '${cleanText}', '${effectiveLang}')" class="text-gray-400 hover:text-brand-300 flex items-center space-x-1 transition cursor-pointer px-2 py-0.5 rounded-md hover:bg-white/5" title="Listen / Stop this explanation">
+                        <i data-lucide="volume-2" class="w-3.5 h-3.5" id="listen-icon-${msgId}"></i>
+                        <span id="listen-text-${msgId}">Listen</span>
+                    </button>
+                </div>
+            `;
+        }
+
+        historyDiv.innerHTML += `
+            <div id="${msgId}" class="p-3.5 rounded-2xl ${classes} text-xs space-y-1 overflow-x-hidden break-words">
+                <div class="prose prose-invert max-w-none text-xs leading-relaxed overflow-x-auto">${isUser ? text : marked.parse(text)}</div>
+                ${audioBtnHtml}
+            </div>
+        `;
+        historyDiv.scrollTop = historyDiv.scrollHeight;
+        safeCreateIcons();
+
+        // Render any Mermaid diagrams in the AI response
+        if (!isUser && typeof mermaid !== 'undefined') {
+            setTimeout(() => {
+                const chatMermaidNodes = document.querySelectorAll(`#${msgId} .mermaid`);
+                if (chatMermaidNodes.length > 0) {
+                    mermaid.run({ nodes: chatMermaidNodes });
+                }
+            }, 60);
+        }
+    }
+
+    // ── Voice Chart & Audio Visualizer Canvas ──
+    let audioCtx = null;
+    let analyserNode = null;
+    let micStream = null;
+    let micDataArray = null;
+
+    function initVoiceChartVisualizer() {
+        voiceChartCanvas = document.getElementById('voice-chart-canvas');
+        if (!voiceChartCanvas) return;
+        voiceChartCtx = voiceChartCanvas.getContext('2d');
+        
+        let phase = 0;
+        const numBars = 36;
+
+        function drawVisualizer() {
+            if (!voiceChartCtx || !voiceChartCanvas) return;
+            const width = voiceChartCanvas.width;
+            const height = voiceChartCanvas.height;
+            voiceChartCtx.clearRect(0, 0, width, height);
+
+            const barWidth = (width / numBars) - 2;
+            phase += 0.09;
+
+            // Get live mic audio frequency data if available
+            if (analyserNode && isListening && micDataArray) {
+                analyserNode.getByteFrequencyData(micDataArray);
+            }
+
+            for (let i = 0; i < numBars; i++) {
+                let barHeight = 4;
+
+                if (isListening) {
+                    if (analyserNode && micDataArray && micDataArray.length > 0) {
+                        const freqIdx = Math.floor((i / numBars) * (micDataArray.length / 2));
+                        const val = micDataArray[freqIdx] || 0;
+                        barHeight = Math.max(4, (val / 255) * (height - 6));
+                    } else {
+                        // Procedural reactive wave while user is speaking
+                        const sinVal = Math.sin(phase * 2.5 + i * 0.45);
+                        const noise = Math.sin(phase * 5 + i * 0.9) * 0.5;
+                        barHeight = Math.max(6, (Math.abs(sinVal + noise) * (height - 6)));
+                    }
+                } else if (isSpeaking) {
+                    // Energetic harmonic spectrum when Diva is talking
+                    const harmonic1 = Math.sin(phase * 3.2 + i * 0.35);
+                    const harmonic2 = Math.cos(phase * 1.8 + i * 0.25);
+                    barHeight = Math.max(5, (Math.abs(harmonic1 * harmonic2) * (height - 6)));
+                } else {
+                    // Subtle ambient breathing wave when idle
+                    const wave = Math.sin(phase + i * 0.22);
+                    barHeight = 4 + Math.abs(wave) * 8;
+                }
+
+                const x = i * (barWidth + 2) + 1;
+                const y = (height - barHeight) / 2;
+
+                // Vibrant high-tech colors
+                if (isListening) {
+                    voiceChartCtx.fillStyle = '#f43f5e'; // Rose 500
+                    voiceChartCtx.shadowColor = '#f43f5e';
+                    voiceChartCtx.shadowBlur = 4;
+                } else if (isSpeaking) {
+                    voiceChartCtx.fillStyle = '#10b981'; // Emerald 500
+                    voiceChartCtx.shadowColor = '#10b981';
+                    voiceChartCtx.shadowBlur = 4;
+                } else {
+                    voiceChartCtx.fillStyle = '#6366f1'; // Brand Indigo
+                    voiceChartCtx.shadowColor = 'transparent';
+                    voiceChartCtx.shadowBlur = 0;
+                }
+
+                voiceChartCtx.beginPath();
+                voiceChartCtx.roundRect(x, y, barWidth, barHeight, [2, 2, 2, 2]);
+                voiceChartCtx.fill();
+            }
+
+            animationFrameId = requestAnimationFrame(drawVisualizer);
+        }
+
+        drawVisualizer();
+    }
+
+    function toggleVoiceChartPanel() {
+        const panel = document.getElementById('voice-chart-panel');
+        if (panel) {
+            panel.classList.toggle('hidden');
+        }
+    }
+
+    function updateVoiceStatus(state, message) {
+        const statusText = document.getElementById('voice-status-text');
+        const statusDot = document.getElementById('voice-status-dot');
+        const statusPing = document.getElementById('voice-status-ping');
+        const stopBtn = document.getElementById('voice-stop-btn');
+        const micIcon = document.getElementById('tutor-mic-icon');
+        const micPulse = document.getElementById('tutor-mic-pulse');
+        const micBtn = document.getElementById('tutor-mic-btn');
+        const modeBadge = document.getElementById('voice-mode-indicator');
+
+        if (statusText) statusText.innerText = message;
+
+        if (state === 'listening') {
+            isListening = true;
+            isSpeaking = false;
+            if (modeBadge) {
+                modeBadge.innerText = "MIC RECORDING";
+                modeBadge.className = "text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse";
+            }
+            if (statusDot) statusDot.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500 shadow-sm shadow-rose-400";
+            if (statusPing) {
+                statusPing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75";
+                statusPing.classList.remove('hidden');
+            }
+            if (stopBtn) stopBtn.classList.remove('hidden');
+            if (micPulse) micPulse.classList.remove('hidden');
+            if (micBtn) micBtn.className = "w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500 text-rose-300 transition flex items-center justify-center relative flex-shrink-0 shadow-lg shadow-rose-500/25";
+        } else if (state === 'speaking') {
+            isSpeaking = true;
+            isListening = false;
+            if (modeBadge) {
+                modeBadge.innerText = "DIVA SPEAKING";
+                modeBadge.className = "text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse";
+            }
+            if (statusDot) statusDot.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400 shadow-sm shadow-emerald-400";
+            if (statusPing) {
+                statusPing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75";
+                statusPing.classList.remove('hidden');
+            }
+            if (stopBtn) stopBtn.classList.remove('hidden');
+            if (micPulse) micPulse.classList.add('hidden');
+            if (micBtn) micBtn.className = "w-10 h-10 rounded-xl bg-dark-900 hover:bg-brand-600/20 border border-white/10 hover:border-brand-500/40 text-gray-300 hover:text-brand-400 transition flex items-center justify-center relative flex-shrink-0 shadow-sm";
+        } else if (state === 'thinking') {
+            isListening = false;
+            isSpeaking = false;
+            if (modeBadge) {
+                modeBadge.innerText = "ANALYZING";
+                modeBadge.className = "text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse";
+            }
+            if (statusDot) statusDot.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400 shadow-sm shadow-amber-400";
+            if (statusPing) {
+                statusPing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75";
+                statusPing.classList.remove('hidden');
+            }
+            if (stopBtn) stopBtn.classList.add('hidden');
+            if (micPulse) micPulse.classList.add('hidden');
+            if (micBtn) micBtn.className = "w-10 h-10 rounded-xl bg-dark-900 hover:bg-brand-600/20 border border-white/10 hover:border-brand-500/40 text-gray-300 hover:text-brand-400 transition flex items-center justify-center relative flex-shrink-0 shadow-sm";
+        } else {
+            isListening = false;
+            isSpeaking = false;
+            if (modeBadge) {
+                modeBadge.innerText = "SPECTRUM 48kHz";
+                modeBadge.className = "text-[9px] font-mono font-medium px-2 py-0.5 rounded-full bg-brand-500/15 text-brand-300 border border-brand-500/20";
+            }
+            if (statusDot) statusDot.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-500 shadow-sm shadow-brand-400";
+            if (statusPing) statusPing.classList.add('hidden');
+            if (stopBtn) stopBtn.classList.add('hidden');
+            if (micPulse) micPulse.classList.add('hidden');
+            if (micBtn) micBtn.className = "w-10 h-10 rounded-xl bg-dark-900 hover:bg-brand-600/20 border border-white/10 hover:border-brand-500/40 text-gray-300 hover:text-brand-400 transition flex items-center justify-center relative flex-shrink-0 shadow-sm";
+        }
+        safeCreateIcons();
+    }
+
+    // ── Speech-to-Text (STT) Recognition (Multi-Lingual) ──
+    function initSpeechRecognition() {
+        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRec) {
+            console.warn("Speech Recognition API not supported in this browser.");
+            return;
+        }
+
+        try {
+            recognition = new SpeechRec();
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            
+            const activeLang = getActiveLanguage();
+            const cfg = INDIAN_LANG_CONFIG[activeLang] || INDIAN_LANG_CONFIG['English'];
+            recognition.lang = cfg.code;
+
+            recognition.onstart = function() {
+                updateVoiceStatus('listening', `Listening in ${cfg.label}... Speak now`);
+            };
+
+            recognition.onresult = function(event) {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+
+                const input = document.getElementById('tutor-input');
+                if (input) {
+                    input.value = finalTranscript || interimTranscript;
+                }
+            };
+
+            recognition.onerror = function(event) {
+                console.warn("Speech recognition error:", event.error);
+                updateVoiceStatus('idle', 'Voice mic stopped • Click to talk');
+            };
+
+            recognition.onend = function() {
+                updateVoiceStatus('idle', 'Voice Ready • Click Mic or type');
+                const input = document.getElementById('tutor-input');
+                if (input && input.value.trim().length > 1) {
+                    sendTutorMessage();
+                }
+            };
+        } catch (e) {
+            console.warn("Speech recognition init error:", e);
+        }
+    }
+
+    function toggleSpeechRecognition() {
+        if (!recognition) {
+            initSpeechRecognition();
+            if (!recognition) {
+                alert("Speech recognition is not supported in this browser. Please use Google Chrome, Edge, or a modern browser with microphone support.");
+                return;
+            }
+        }
+
+        if (isListening) {
+            recognition.stop();
+            updateVoiceStatus('idle', 'Voice Ready');
+        } else {
+            stopAllSpeech();
+            
+            // Sync recognition language before starting
+            const activeLang = getActiveLanguage();
+            const cfg = INDIAN_LANG_CONFIG[activeLang] || INDIAN_LANG_CONFIG['English'];
+            recognition.lang = cfg.code;
+
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia && !audioCtx) {
+                navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                    micStream = stream;
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const source = audioCtx.createMediaStreamSource(stream);
+                    analyserNode = audioCtx.createAnalyser();
+                    analyserNode.fftSize = 64;
+                    analyserNode.smoothingTimeConstant = 0.75;
+                    source.connect(analyserNode);
+                    micDataArray = new Uint8Array(analyserNode.frequencyBinCount);
+                }).catch(e => {
+                    console.log("Procedural visualizer active:", e);
+                });
+            }
+
+            try {
+                recognition.start();
+            } catch (e) {
+                recognition.stop();
+                setTimeout(() => recognition.start(), 200);
+            }
+        }
+    }
+
+    // ── Multi-Lingual Speech Synthesis (TTS) Engine with Sentence Chunking ──
+    let divaVoiceRate = 1.0;
+    let narrationQueue = [];
+    let narrationIndex = 0;
+    let isNarratingSection = false;
+    let activeUtterance = null;
+
+    function initSpeechSynthesis() {
+        if (!('speechSynthesis' in window)) return;
+
+        function loadVoices() {
+            const voices = window.speechSynthesis.getVoices();
+            if (!voices || voices.length === 0) return;
+
+            const activeLang = getActiveLanguage();
+            preferredDivaVoice = findBestVoiceForLanguage(activeLang, voices);
+        }
+
+        loadVoices();
+        if (window.speechSynthesis.onvoiceschanged !== undefined) {
+            window.speechSynthesis.onvoiceschanged = loadVoices;
+        }
+    }
+
+    function findBestVoiceForLanguage(langName, voices) {
+        if (!voices) voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+        if (!voices || voices.length === 0) return null;
+
+        const cfg = INDIAN_LANG_CONFIG[langName] || INDIAN_LANG_CONFIG['English'];
+        
+        // 1. Try matching specific regional voice names
+        for (let nameKw of cfg.names) {
+            const found = voices.find(v => v.name.toLowerCase().includes(nameKw.toLowerCase()));
+            if (found) return found;
+        }
+
+        // 2. Try matching language code prefixes
+        for (let p of cfg.prefixes) {
+            const found = voices.find(v => v.lang.toLowerCase().startsWith(p.toLowerCase()));
+            if (found) return found;
+        }
+
+        // 3. Fallback to natural female / English / first voice
+        const fallback = voices.find(v => v.lang.toLowerCase().includes('en-in')) ||
+                         voices.find(v => v.lang.toLowerCase().startsWith('en')) ||
+                         voices[0];
+        return fallback;
+    }
+
+    // ── Singleton Multi-Lingual Diva Voice Controller (Prevents Collisions & Overlaps) ──
+    const DivaVoice = {
+        audio: null,
+        generationId: 0,
+        isPlaying: false,
+        isNarratingSection: false,
+        activePlayingMsgId: null,
+        queue: [],
+        currentIndex: 0,
+        activeLanguage: 'English',
+        rate: 1.0,
+
+        stop() {
+            this.generationId++;
+            this.isPlaying = false;
+            this.isNarratingSection = false;
+
+            if (this.activePlayingMsgId) {
+                this.updateMessageButtonUI(this.activePlayingMsgId, false);
+                this.activePlayingMsgId = null;
+            }
+            document.querySelectorAll('[id^="listen-text-"]').forEach(el => el.innerText = "Listen");
+            document.querySelectorAll('[id^="listen-icon-"]').forEach(el => el.setAttribute('data-lucide', 'volume-2'));
+            document.querySelectorAll('[id^="listen-btn-"]').forEach(el => el.className = "text-gray-400 hover:text-brand-300 flex items-center space-x-1 transition cursor-pointer px-2 py-0.5 rounded-md hover:bg-white/5");
+
+            this.queue = [];
+            this.currentIndex = 0;
+
+            if (this.audio) {
+                this.audio.onended = null;
+                this.audio.onerror = null;
+                this.audio.oncanplay = null;
+                try {
+                    this.audio.pause();
+                    this.audio.src = '';
+                } catch(e) {}
+                this.audio = null;
+            }
+
+            if ('speechSynthesis' in window) {
+                try { window.speechSynthesis.cancel(); } catch(e) {}
+            }
+
+            if (recognition && isListening) {
+                try { recognition.stop(); } catch(e) {}
+            }
+
+            updatePlayerUI('idle', 'Listen to AI audio narration in your language');
+            updateVoiceStatus('idle', 'Voice Ready • Click Mic or type');
+            const subtitleEl = document.getElementById('player-live-sentence');
+            if (subtitleEl) subtitleEl.classList.add('hidden');
+            safeCreateIcons();
+        },
+
+        speakText(text, lang, msgId = null, onDone = null) {
+            this.stop();
+            const clean = stripMarkdownForTTS(text);
+            if (!clean) return;
+
+            const gen = this.generationId;
+            const targetLang = lang || getActiveLanguage();
+            this.activeLanguage = targetLang;
+            this.activePlayingMsgId = msgId;
+            this.queue = splitIntoNarrationSentences(clean);
+            if (this.queue.length === 0) return;
+
+            this.currentIndex = 0;
+            this.isPlaying = true;
+            this.isNarratingSection = false;
+
+            if (msgId) {
+                this.updateMessageButtonUI(msgId, true);
+            }
+
+            const cfg = INDIAN_LANG_CONFIG[targetLang] || INDIAN_LANG_CONFIG['English'];
+            updateVoiceStatus('speaking', `Diva is speaking in ${cfg.label}...`);
+
+            this.playNextChunk(gen, onDone);
+        },
+
+        updateMessageButtonUI(msgId, isPlaying) {
+            const btn = document.getElementById(`listen-btn-${msgId}`);
+            const icon = document.getElementById(`listen-icon-${msgId}`);
+            const text = document.getElementById(`listen-text-${msgId}`);
+            if (!btn) return;
+            if (isPlaying) {
+                btn.className = "text-rose-300 bg-rose-500/20 border border-rose-500/30 flex items-center space-x-1 transition cursor-pointer px-2 py-0.5 rounded-md font-semibold";
+                if (icon) icon.setAttribute('data-lucide', 'square');
+                if (text) text.innerText = "Stop";
+            } else {
+                btn.className = "text-gray-400 hover:text-brand-300 flex items-center space-x-1 transition cursor-pointer px-2 py-0.5 rounded-md hover:bg-white/5";
+                if (icon) icon.setAttribute('data-lucide', 'volume-2');
+                if (text) text.innerText = "Listen";
+            }
+            safeCreateIcons();
+        },
+
+        narrateSection(secIdx) {
+            const sec = sections[secIdx];
+            if (!sec) return;
+
+            this.stop();
+            const activeLang = getActiveLanguage();
+            const cfg = INDIAN_LANG_CONFIG[activeLang] || INDIAN_LANG_CONFIG['English'];
+
+            let fullText = `${sec.title}. `;
+            if (sec.content) fullText += sec.content;
+            if (sec.example) fullText += ` Worked example: ${sec.example}`;
+
+            const clean = stripMarkdownForTTS(fullText);
+            this.queue = splitIntoNarrationSentences(clean);
+            if (this.queue.length === 0) return;
+
+            const gen = this.generationId;
+            this.activeLanguage = activeLang;
+            this.currentIndex = 0;
+            this.isPlaying = true;
+            this.isNarratingSection = true;
+
+            updatePlayerUI('playing', `Diva Voice Narrating: ${sec.title}`);
+            updateVoiceStatus('speaking', `Diva Voice (${cfg.label}) • Deep Dive Audio Active`);
+
+            this.playNextChunk(gen, () => {
+                this.stop();
+            });
+        },
+
+        playNextChunk(gen, onDone) {
+            if (gen !== this.generationId || !this.isPlaying) return;
+
+            if (this.currentIndex >= this.queue.length) {
+                this.stop();
+                if (onDone) onDone();
+                return;
+            }
+
+            const sentence = this.queue[this.currentIndex];
+            const lang = this.activeLanguage;
+            const cfg = INDIAN_LANG_CONFIG[lang] || INDIAN_LANG_CONFIG['English'];
+
+            // Update live subtitle bar
+            const subtitleEl = document.getElementById('player-live-sentence');
+            if (subtitleEl) {
+                subtitleEl.innerText = sentence;
+                subtitleEl.classList.remove('hidden');
+            }
+
+            const encodedText = encodeURIComponent(sentence);
+            const encodedLang = encodeURIComponent(cfg.name || lang);
+            const streamUrl = `/learning/voice/tts?lang=${encodedLang}&text=${encodedText}`;
+
+            const audio = new Audio();
+            audio.src = streamUrl;
+            audio.playbackRate = this.rate || 1.0;
+            this.audio = audio;
+
+            let hasHandled = false;
+            const advance = () => {
+                if (hasHandled) return;
+                hasHandled = true;
+                if (gen !== this.generationId) return;
+                this.currentIndex++;
+                this.playNextChunk(gen, onDone);
+            };
+
+            const fallback = (err) => {
+                if (hasHandled) return;
+                hasHandled = true;
+                if (gen !== this.generationId) return;
+                console.warn("Neural audio fallback to speech synthesis:", err);
+                this.speakFallbackUtterance(sentence, lang, gen, advance);
+            };
+
+            audio.onended = advance;
+            audio.onerror = fallback;
+
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(fallback);
+            }
+        },
+
+        speakFallbackUtterance(sentence, lang, gen, callback) {
+            if (gen !== this.generationId || !('speechSynthesis' in window)) {
+                callback();
+                return;
+            }
+            const cfg = INDIAN_LANG_CONFIG[lang] || INDIAN_LANG_CONFIG['English'];
+            const utt = new SpeechSynthesisUtterance(sentence);
+            utt.lang = cfg.code;
+            const voices = window.speechSynthesis.getVoices();
+            const voice = findBestVoiceForLanguage(lang, voices);
+            if (voice) utt.voice = voice;
+            utt.rate = this.rate || 1.0;
+            utt.pitch = 1.05;
+
+            let handled = false;
+            const next = () => {
+                if (handled) return;
+                handled = true;
+                if (gen !== this.generationId) return;
+                callback();
+            };
+
+            utt.onend = next;
+            utt.onerror = next;
+            window.speechSynthesis.speak(utt);
+        }
+    };
+
+    function setPlayerVoiceSpeed(rate, btn) {
+        DivaVoice.rate = rate;
+        if (DivaVoice.audio) {
+            try { DivaVoice.audio.playbackRate = rate; } catch(e) {}
+        }
+        const container = document.getElementById('player-speed-controls');
+        if (container) {
+            const btns = container.querySelectorAll('button');
+            btns.forEach(b => {
+                b.className = "px-1.5 py-0.5 rounded text-gray-400 hover:text-white";
+            });
+            if (btn) {
+                btn.className = "px-1.5 py-0.5 rounded bg-brand-500/20 text-brand-300 font-bold";
+            }
+        }
+        const drawerSelector = document.getElementById('voice-speed-selector');
+        if (drawerSelector) {
+            const dBtns = drawerSelector.querySelectorAll('button');
+            dBtns.forEach(b => {
+                b.className = "px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-gray-400 font-mono transition";
+                if (b.innerText.includes(rate + 'x') || (rate === 1.0 && b.innerText === '1.0x')) {
+                    b.className = "px-2 py-0.5 rounded-md bg-brand-500/20 text-brand-300 border border-brand-500/30 font-mono font-bold transition";
+                }
+            });
+        }
+    }
+
+    function setVoiceSpeed(rate, btn) {
+        setPlayerVoiceSpeed(rate, null);
+        if (btn) {
+            const drawerSelector = document.getElementById('voice-speed-selector');
+            if (drawerSelector) {
+                drawerSelector.querySelectorAll('button').forEach(b => {
+                    b.className = "px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-gray-400 font-mono transition";
+                });
+                btn.className = "px-2 py-0.5 rounded-md bg-brand-500/20 text-brand-300 border border-brand-500/30 font-mono font-bold transition";
+            }
+        }
+    }
+
+    function toggleVoiceTTS() {
+        voiceTTSEnabled = !voiceTTSEnabled;
+        const icon = document.getElementById('tts-toggle-icon');
+        const btn = document.getElementById('tutor-tts-toggle');
+        const badge = document.getElementById('voice-mode-badge');
+
+        if (voiceTTSEnabled) {
+            btn.className = "w-8 h-8 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 flex items-center justify-center transition border border-brand-500/20";
+            btn.title = "Voice Read Aloud: Enabled";
+            badge.innerText = "Voice Ready";
+            badge.className = "text-[9px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30 px-1.5 py-0.5 rounded-full uppercase tracking-wider";
+            if (icon) icon.setAttribute('data-lucide', 'volume-2');
+        } else {
+            DivaVoice.stop();
+            btn.className = "w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 flex items-center justify-center transition border border-white/10";
+            btn.title = "Voice Read Aloud: Muted";
+            badge.innerText = "Text Only";
+            badge.className = "text-[9px] font-bold bg-white/5 text-gray-400 border border-white/10 px-1.5 py-0.5 rounded-full uppercase tracking-wider";
+            if (icon) icon.setAttribute('data-lucide', 'volume-x');
+        }
+        safeCreateIcons();
+    }
+
+    function splitIntoNarrationSentences(text) {
+        if (!text) return [];
+        const clean = stripMarkdownForTTS(text);
+        const rawChunks = clean.split(/(?<=[.?!।\n;])\s+/);
+        const result = [];
+        for (let c of rawChunks) {
+            const trimmed = c.trim();
+            if (!trimmed || trimmed.length < 2) continue;
+            if (trimmed.length > 180) {
+                const sub = trimmed.split(/,\s+/);
+                for (let s of sub) {
+                    if (s.trim()) result.push(s.trim());
+                }
+            } else {
+                result.push(trimmed);
+            }
+        }
+        return result;
+    }
+
+    function toggleSectionNarration() {
+        if (DivaVoice.isNarratingSection) {
+            DivaVoice.stop();
+        } else {
+            DivaVoice.narrateSection(activeSecIdx);
+        }
+    }
+
+    function updatePlayerUI(state, text) {
+        const playBtn = document.getElementById('player-play-btn');
+        const playIcon = document.getElementById('player-play-icon');
+        const playText = document.getElementById('player-play-text');
+        const stopBtn = document.getElementById('voice-stop-btn');
+        const subtitleEl = document.getElementById('player-live-sentence');
+
+        if (state === 'playing') {
+            if (playBtn) {
+                playBtn.className = "flex-grow bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs px-3 py-1.5 rounded-xl shadow-md shadow-emerald-500/25 flex items-center justify-center space-x-1.5 transition active:scale-95 cursor-pointer truncate";
+            }
+            if (playIcon) playIcon.setAttribute('data-lucide', 'pause');
+            if (playText) playText.innerText = "Pause Audio";
+            if (stopBtn) stopBtn.classList.remove('hidden');
+        } else {
+            if (playBtn) {
+                playBtn.className = "flex-grow bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold text-xs px-3 py-1.5 rounded-xl shadow-md shadow-brand-500/25 flex items-center justify-center space-x-1.5 transition active:scale-95 cursor-pointer truncate";
+            }
+            if (playIcon) playIcon.setAttribute('data-lucide', 'play');
+            if (playText) playText.innerText = "Listen to Section";
+            if (stopBtn) stopBtn.classList.add('hidden');
+            if (subtitleEl) subtitleEl.classList.add('hidden');
+        }
+        safeCreateIcons();
+    }
+
+    function narrateWorkedExample() {
+        const sec = sections[activeSecIdx];
+        if (!sec || !sec.example) return;
+        const activeLang = getActiveLanguage();
+        const text = `Worked Example code walkthrough for ${sec.title}. ${sec.example}`;
+        DivaVoice.speakText(text, activeLang);
+    }
+
+    function narrateMcq(secIdx, qIdx) {
+        const sec = sections[secIdx];
+        if (!sec || !sec.mcqQuestions || !sec.mcqQuestions[qIdx]) return;
+        const q = sec.mcqQuestions[qIdx];
+        const activeLang = getActiveLanguage();
+        let text = `Practice Question: ${q.question}. `;
+        q.options.forEach((opt, idx) => {
+            text += ` Option ${idx + 1}: ${opt}. `;
+        });
+        if (q.explanation) {
+            text += ` Explanation: ${q.explanation}`;
+        }
+        DivaVoice.speakText(text, activeLang);
+    }
+
+    function toggleListenMessage(msgId, text, lang) {
+        if (DivaVoice.activePlayingMsgId === msgId && DivaVoice.isPlaying) {
+            DivaVoice.stop();
+        } else {
+            DivaVoice.speakText(text, lang, msgId);
+        }
+    }
+
+    function speakDivaResponse(text, targetLang) {
+        DivaVoice.speakText(text, targetLang);
+    }
+
+    function stopAllSpeech() {
+        DivaVoice.stop();
+    }
+
+    function stripMarkdownForTTS(md) {
+        if (!md) return "";
+        let clean = md;
+        // Clean code blocks to clear audio markers
+        clean = clean.replace(/```[\s\S]*?```/g, " [Code example on screen] ");
+        clean = clean.replace(/`([^`]+)`/g, "$1");
+        clean = clean.replace(/#{1,6}\s+/g, "");
+        clean = clean.replace(/(\*\*|__)(.*?)\1/g, "$2");
+        clean = clean.replace(/(\*|_)(.*?)\1/g, "$2");
+        clean = clean.replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1");
+        clean = clean.replace(/>\s+/g, "");
+        clean = clean.replace(/[-*+]\s+/g, "");
+        return clean.trim();
+    }
+
+    function escapeQuotesForJS(str) {
+        return str
+            .replace(/\\/g, '\\\\')
+            .replace(/'/g, "\\'")
+            .replace(/"/g, '&quot;')
+            .replace(/\n/g, ' ');
+    }
+
+    // ── Player Spectrum Canvas Visualizer ──
+    let playerSpectrumCanvas = null;
+    let playerSpectrumCtx = null;
+    let playerSpectrumAnimId = null;
+
+    function initPlayerSpectrum() {
+        playerSpectrumCanvas = document.getElementById('player-spectrum-canvas');
+        if (!playerSpectrumCanvas) return;
+        playerSpectrumCtx = playerSpectrumCanvas.getContext('2d');
+        
+        let phase = 0;
+        const numBars = 32;
+
+        function drawPlayerWave() {
+            if (!playerSpectrumCtx || !playerSpectrumCanvas) return;
+            const w = playerSpectrumCanvas.width;
+            const h = playerSpectrumCanvas.height;
+            playerSpectrumCtx.clearRect(0, 0, w, h);
+
+            phase += 0.12;
+            const barW = (w / numBars) - 2;
+
+            for (let i = 0; i < numBars; i++) {
+                let barH = 3;
+                if (isNarratingSection || isSpeaking) {
+                    const s1 = Math.sin(phase * 2.8 + i * 0.4);
+                    const s2 = Math.cos(phase * 1.5 + i * 0.3);
+                    barH = Math.max(4, Math.abs(s1 * s2) * (h - 4));
+                    playerSpectrumCtx.fillStyle = '#6366f1'; // Brand Indigo/Violet
+                    playerSpectrumCtx.shadowColor = '#818cf8';
+                    playerSpectrumCtx.shadowBlur = 4;
+                } else {
+                    const s = Math.sin(phase * 0.5 + i * 0.2);
+                    barH = 3 + Math.abs(s) * 3;
+                    playerSpectrumCtx.fillStyle = 'rgba(99, 102, 241, 0.25)';
+                    playerSpectrumCtx.shadowBlur = 0;
+                }
+
+                const x = i * (barW + 2) + 1;
+                const y = (h - barH) / 2;
+                playerSpectrumCtx.beginPath();
+                playerSpectrumCtx.roundRect(x, y, barW, barH, [2, 2, 2, 2]);
+                playerSpectrumCtx.fill();
+            }
+            playerSpectrumAnimId = requestAnimationFrame(drawPlayerWave);
+        }
+        drawPlayerWave();
+    }
+
+    // ── Code Runner Drawer Controller ──
+    let lastDrawerStderr = "";
+    let lastDrawerCode = "";
+
+    function toggleRunnerDrawer() {
+        const drawer = document.getElementById('runner-drawer');
+        const floatingActions = document.getElementById('floating-actions');
+        const isClosed = drawer.classList.contains('translate-x-full');
+        
+        if (isClosed) {
+            const tutorDrawer = document.getElementById('tutor-drawer');
+            if (!tutorDrawer.classList.contains('translate-x-full')) {
+                tutorDrawer.classList.add('translate-x-full');
+            }
+            drawer.classList.remove('translate-x-full');
+            floatingActions.classList.add('opacity-0', 'pointer-events-none', 'translate-x-12');
+            
+            const editor = document.getElementById('drawer-code-editor');
+            if (!editor.value.trim() && sections[activeSecIdx] && sections[activeSecIdx].example) {
+                editor.value = cleanCodeSnippet(sections[activeSecIdx].example);
+            }
+        } else {
+            drawer.classList.add('translate-x-full');
+            floatingActions.classList.remove('opacity-0', 'pointer-events-none', 'translate-x-12');
+        }
+        safeCreateIcons();
+    }
+
+    function openRunnerWithExample() {
+        const sec = sections[activeSecIdx];
+        if (!sec || !sec.example) return;
+
+        const editor = document.getElementById('drawer-code-editor');
+        editor.value = cleanCodeSnippet(sec.example);
+
+        const domainStr = "{{ lesson.learning_path.domain }}".toLowerCase();
+        const select = document.getElementById('drawer-lang-select');
+        
+        if (domainStr.includes("python")) select.value = "python";
+        else if (domainStr.includes("sql")) select.value = "sql";
+        else if (domainStr.includes("rust")) select.value = "rust";
+        else if (domainStr.includes("go") || domainStr.includes("golang")) select.value = "go";
+        else if (domainStr.includes("c++") || domainStr.includes("cpp")) select.value = "c++";
+        else if (domainStr.includes("typescript") || domainStr.includes("ts")) select.value = "typescript";
+        else if (domainStr.includes("javascript") || domainStr.includes("js") || domainStr.includes("node") || domainStr.includes("react")) select.value = "javascript";
+        else if (domainStr.includes("java")) select.value = "java";
+        else if (domainStr.includes(" c ") || domainStr.endsWith(" c")) select.value = "c";
+
+        const drawer = document.getElementById('runner-drawer');
+        if (drawer.classList.contains('translate-x-full')) {
+            toggleRunnerDrawer();
+        }
+
+        runDrawerCode();
+    }
+
+    function cleanCodeSnippet(text) {
+        if (!text) return "";
+        let cleaned = text.trim();
+        if (cleaned.startsWith("```")) {
+            cleaned = cleaned.replace(/^```[a-zA-Z0-9_-]*\n?/, "");
+            cleaned = cleaned.replace(/\n?```$/, "");
+        }
+        if (cleaned.includes('\\n')) {
+            cleaned = cleaned.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+        }
+        return cleaned.trim();
+    }
+
+    async function runDrawerCode() {
+        const lang = document.getElementById('drawer-lang-select').value;
+        const code = document.getElementById('drawer-code-editor').value;
+        const stdin = document.getElementById('drawer-stdin').value;
+
+        if (!code.trim()) return;
+
+        const btn = document.getElementById('drawer-run-btn');
+        const btnText = document.getElementById('drawer-run-text');
+        const icon = document.getElementById('drawer-run-icon');
+        const outputDiv = document.getElementById('drawer-output');
+        const timeBadge = document.getElementById('drawer-time-badge');
+        const aiBox = document.getElementById('drawer-ai-error');
+        const aiContent = document.getElementById('drawer-ai-explanation');
+
+        btn.disabled = true;
+        btnText.innerText = "Running...";
+        icon.classList.add("animate-spin");
+        outputDiv.innerHTML = '<span class="text-emerald-400 animate-pulse">Executing code on isolated runtime...</span>';
+        aiBox.classList.add('hidden');
+        aiContent.classList.add('hidden');
+
+        lastDrawerCode = code;
+
+        try {
+            const res = await fetch("/compiler/execute", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ language: lang, code: code, stdin: stdin })
+            });
+            const data = await res.json();
+
+            let outText = "";
+            if (data.stdout) outText += data.stdout;
+            if (data.stderr) {
+                lastDrawerStderr = data.stderr;
+                if (outText) outText += "\n";
+                outText += data.stderr;
+                aiBox.classList.remove('hidden');
+            } else {
+                lastDrawerStderr = "";
+            }
+
+            if (!data.stdout && !data.stderr) {
+                outText = "(Program executed successfully with no output)";
+            }
+
+            outputDiv.innerText = outText;
+            timeBadge.innerText = `${data.executionTimeMs}ms • Exit: ${data.exitCode}`;
+        } catch (e) {
+            outputDiv.innerText = "Execution failed: " + e.message;
+        } finally {
+            btn.disabled = false;
+            btnText.innerText = "Run";
+            icon.classList.remove("animate-spin");
+            safeCreateIcons();
+        }
+    }
+
+    async function explainDrawerError() {
+        if (!lastDrawerStderr) return;
+
+        const lang = document.getElementById('drawer-lang-select').value;
+        const btn = document.getElementById('drawer-explain-btn');
+        const contentDiv = document.getElementById('drawer-ai-explanation');
+
+        btn.disabled = true;
+        btn.innerText = "Analyzing error...";
+
+        try {
+            const res = await fetch("/compiler/explain", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ language: lang, code: lastDrawerCode, error: lastDrawerStderr })
+            });
+            const data = await res.json();
+            contentDiv.classList.remove('hidden');
+            contentDiv.innerHTML = marked.parse(data.explanation || "No explanation available.");
+        } catch (e) {
+            contentDiv.classList.remove('hidden');
+            contentDiv.innerText = "Could not fetch AI explanation.";
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Explain Error with AI";
+        }
+    }
+
+    // ── Translation Modal Controller ──
+    function openTranslateModal() {
+        const modal = document.getElementById('translate-select-modal');
+        if (modal) modal.classList.remove('hidden');
+        safeCreateIcons();
+    }
+
+    function closeTranslateModal() {
+        const modal = document.getElementById('translate-select-modal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    function selectLanguageAndTranslate(lang) {
+        document.cookie = "preferred_language=" + encodeURIComponent(lang) + "; path=/; max-age=31536000";
+        closeTranslateModal();
+        
+        const loadingModal = document.getElementById('translate-loading-modal');
+        const subtitle = document.getElementById('translate-modal-subtitle');
+        const cfg = INDIAN_LANG_CONFIG[lang] || { label: lang };
+        
+        if (subtitle) {
+            subtitle.innerText = `Diva AI is regenerating all 50-minute syllabus subtopics, code examples, and practice MCQs in ${cfg.label}. Please wait a few seconds...`;
+        }
+        if (loadingModal) {
+            loadingModal.classList.remove('hidden');
+        }
+        safeCreateIcons();
+        window.location.href = "?regenerate=true";
+    }
+</script>
+
+<!-- Interactive Regional Language Selection Modal Overlay -->
+<div id="translate-select-modal" class="fixed inset-0 z-50 bg-dark-950/80 backdrop-blur-md flex items-center justify-center hidden p-4">
+    <div class="glass max-w-xl w-full p-6 md:p-8 rounded-3xl border border-brand-500/30 text-left space-y-6 shadow-2xl shadow-brand-950/50">
+        <div class="flex items-center justify-between border-b border-white/10 pb-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-lg shadow-amber-500/20">
+                    <i data-lucide="languages" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white">Select Lesson Language</h3>
+                    <p class="text-xs text-gray-400">Choose your preferred language for explanations & Diva AI Voice</p>
+                </div>
+            </div>
+            <button onclick="closeTranslateModal()" class="w-8 h-8 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- 6 Regional Language Cards Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button type="button" onclick="selectLanguageAndTranslate('Tamil')" class="p-4 rounded-2xl border border-white/10 hover:border-brand-500 bg-dark-900/60 hover:bg-brand-500/10 text-left transition flex items-center space-x-3 group cursor-pointer">
+                <span class="text-2xl">🇮🇳</span>
+                <div>
+                    <div class="font-bold text-sm text-white group-hover:text-brand-300 transition">தமிழ் (Tamil)</div>
+                    <div class="text-[11px] text-gray-400">Tamil explanations & Diva voice</div>
+                </div>
+            </button>
+
+            <button type="button" onclick="selectLanguageAndTranslate('Telugu')" class="p-4 rounded-2xl border border-white/10 hover:border-brand-500 bg-dark-900/60 hover:bg-brand-500/10 text-left transition flex items-center space-x-3 group cursor-pointer">
+                <span class="text-2xl">🇮🇳</span>
+                <div>
+                    <div class="font-bold text-sm text-white group-hover:text-brand-300 transition">తెలుగు (Telugu)</div>
+                    <div class="text-[11px] text-gray-400">Telugu explanations & Diva voice</div>
+                </div>
+            </button>
+
+            <button type="button" onclick="selectLanguageAndTranslate('English')" class="p-4 rounded-2xl border border-white/10 hover:border-brand-500 bg-dark-900/60 hover:bg-brand-500/10 text-left transition flex items-center space-x-3 group cursor-pointer">
+                <span class="text-2xl">🇬🇧</span>
+                <div>
+                    <div class="font-bold text-sm text-white group-hover:text-brand-300 transition">English</div>
+                    <div class="text-[11px] text-gray-400">Standard global CS curriculum</div>
+                </div>
+            </button>
+
+            <button type="button" onclick="selectLanguageAndTranslate('Bengali')" class="p-4 rounded-2xl border border-white/10 hover:border-brand-500 bg-dark-900/60 hover:bg-brand-500/10 text-left transition flex items-center space-x-3 group cursor-pointer">
+                <span class="text-2xl">🇮🇳</span>
+                <div>
+                    <div class="font-bold text-sm text-white group-hover:text-brand-300 transition">বাংলা (Bengali)</div>
+                    <div class="text-[11px] text-gray-400">Bengali explanations & Diva voice</div>
+                </div>
+            </button>
+
+            <button type="button" onclick="selectLanguageAndTranslate('Marathi')" class="p-4 rounded-2xl border border-white/10 hover:border-brand-500 bg-dark-900/60 hover:bg-brand-500/10 text-left transition flex items-center space-x-3 group cursor-pointer">
+                <span class="text-2xl">🇮🇳</span>
+                <div>
+                    <div class="font-bold text-sm text-white group-hover:text-brand-300 transition">मराठी (Marathi)</div>
+                    <div class="text-[11px] text-gray-400">Marathi explanations & Diva voice</div>
+                </div>
+            </button>
+
+            <button type="button" onclick="selectLanguageAndTranslate('Hindi')" class="p-4 rounded-2xl border border-white/10 hover:border-brand-500 bg-dark-900/60 hover:bg-brand-500/10 text-left transition flex items-center space-x-3 group cursor-pointer">
+                <span class="text-2xl">🇮🇳</span>
+                <div>
+                    <div class="font-bold text-sm text-white group-hover:text-brand-300 transition">हिंदी (Hindi)</div>
+                    <div class="text-[11px] text-gray-400">Hindi explanations & Diva voice</div>
+                </div>
+            </button>
+        </div>
+
+        <div class="p-3 bg-white/5 rounded-xl text-[11px] text-gray-400 leading-relaxed border border-white/5 flex items-center space-x-2">
+            <i data-lucide="info" class="w-4 h-4 text-brand-400 flex-shrink-0"></i>
+            <span>All code snippets, functions, and runnable examples remain in 100% pure ASCII English for industry-standard compiler compatibility.</span>
+        </div>
+    </div>
+</div>
+
+<!-- Translation Loading Modal Overlay -->
+<div id="translate-loading-modal" class="fixed inset-0 z-50 bg-dark-950/80 backdrop-blur-md flex items-center justify-center hidden p-4">
+    <div class="glass max-w-md w-full p-6 md:p-8 rounded-3xl border border-brand-500/30 text-center space-y-5 shadow-2xl shadow-brand-950/50">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center mx-auto shadow-xl shadow-brand-500/30 animate-bounce">
+            <i data-lucide="languages" class="w-8 h-8"></i>
+        </div>
+        <div class="space-y-2">
+            <h3 class="text-xl font-bold text-white">Translating Lesson Content...</h3>
+            <p id="translate-modal-subtitle" class="text-xs text-gray-300 leading-relaxed">Diva AI is regenerating all syllabus subtopics, code examples, and practice questions in your chosen language.</p>
+        </div>
+        <div class="w-full bg-white/5 rounded-full h-2 overflow-hidden border border-white/10">
+            <div class="bg-gradient-to-r from-brand-500 via-indigo-500 to-emerald-500 h-full rounded-full animate-pulse w-full"></div>
+        </div>
+        <div class="flex items-center justify-center space-x-2 text-[11px] text-brand-400 font-mono">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 animate-spin"></i>
+            <span>Powered by Diva AI Engine</span>
+        </div>
+    </div>
+</div>
+{% endblock %}

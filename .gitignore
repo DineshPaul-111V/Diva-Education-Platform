@@ -1,0 +1,10 @@
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+.env
+dev.db
+scratch_*.json
+scratch_script_*.js
+.ipynb_checkpoints/

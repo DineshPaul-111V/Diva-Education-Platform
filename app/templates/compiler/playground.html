@@ -1,0 +1,333 @@
+{% extends "layout.html" %}
+
+{% block title %}Interactive Code Playground - Diva AI{% endblock %}
+
+{% block content %}
+<!-- Marked for AI explanations rendering -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+<div class="flex-grow flex flex-col h-[calc(100vh-73px)] overflow-hidden bg-dark-900">
+    <!-- Top Action Bar -->
+    <div class="glass border-b border-white/10 px-6 py-3.5 flex flex-wrap items-center justify-between gap-4 flex-shrink-0">
+        <!-- Left: Language Picker & Actions -->
+        <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-2 bg-dark-800 border border-white/10 rounded-xl px-3 py-1.5">
+                <i data-lucide="code-2" class="w-4 h-4 text-brand-400"></i>
+                <label for="language-select" class="sr-only">Language</label>
+                <select id="language-select" onchange="changeLanguage()" class="bg-transparent text-sm font-semibold text-white focus:outline-none cursor-pointer">
+                    <option value="python" class="bg-dark-800 text-white" {% if initial_lang == 'python' %}selected{% endif %}>Python 3</option>
+                    <option value="javascript" class="bg-dark-800 text-white" {% if initial_lang == 'javascript' %}selected{% endif %}>JavaScript (Node.js)</option>
+                    <option value="typescript" class="bg-dark-800 text-white" {% if initial_lang == 'typescript' %}selected{% endif %}>TypeScript</option>
+                    <option value="c" class="bg-dark-800 text-white" {% if initial_lang == 'c' %}selected{% endif %}>C (GCC)</option>
+                    <option value="c++" class="bg-dark-800 text-white" {% if initial_lang in ['c++', 'cpp'] %}selected{% endif %}>C++ (G++)</option>
+                    <option value="java" class="bg-dark-800 text-white" {% if initial_lang == 'java' %}selected{% endif %}>Java</option>
+                    <option value="rust" class="bg-dark-800 text-white" {% if initial_lang == 'rust' %}selected{% endif %}>Rust</option>
+                    <option value="go" class="bg-dark-800 text-white" {% if initial_lang == 'go' %}selected{% endif %}>Go</option>
+                    <option value="sql" class="bg-dark-800 text-white" {% if initial_lang == 'sql' %}selected{% endif %}>SQL (SQLite In-Memory)</option>
+                </select>
+            </div>
+
+            <button onclick="loadTemplate()" class="glass hover:bg-white/5 text-xs text-gray-300 hover:text-white px-3 py-2 rounded-xl transition flex items-center space-x-1.5" title="Load Starter Code">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                <span>Reset Template</span>
+            </button>
+
+            <button onclick="toggleStdin()" id="stdin-toggle-btn" class="glass hover:bg-white/5 text-xs text-gray-300 px-3 py-2 rounded-xl transition flex items-center space-x-1.5">
+                <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
+                <span>Standard Input (stdin)</span>
+            </button>
+        </div>
+
+        <!-- Right: Execution Status & Run Button -->
+        <div class="flex items-center space-x-4">
+            <span id="exec-status" class="text-xs text-gray-400 font-mono hidden md:inline-block">Ready</span>
+
+            <button onclick="runCode()" id="run-btn" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm px-6 py-2 rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition flex items-center space-x-2">
+                <i data-lucide="play" class="w-4 h-4 fill-current" id="run-icon"></i>
+                <span id="run-btn-text">Run Code</span>
+                <span class="text-[10px] opacity-75 font-normal bg-black/20 px-1.5 py-0.5 rounded ml-1 hidden sm:inline">Ctrl+↵</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Workspace (Editor + Output) -->
+    <div class="flex-grow flex flex-col md:flex-row h-full overflow-hidden">
+        <!-- LEFT: Code Editor Pane -->
+        <div class="flex-1 flex flex-col border-r border-white/10 h-full overflow-hidden relative">
+            <!-- Stdin Input Panel (Collapsible) -->
+            <div id="stdin-panel" class="hidden border-b border-white/10 bg-dark-800/80 p-3 space-y-1.5 flex-shrink-0">
+                <div class="flex items-center justify-between text-xs text-gray-400">
+                    <span class="font-semibold uppercase tracking-wider">Standard Input (stdin)</span>
+                    <button onclick="toggleStdin()" class="hover:text-white"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+                </div>
+                <textarea id="stdin-input" rows="2" placeholder="Provide input lines for your program..." class="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-xs font-mono text-gray-300 focus:outline-none focus:border-brand-500"></textarea>
+            </div>
+
+            <!-- Editor Wrapper -->
+            <div class="flex-grow flex h-full overflow-hidden bg-[#030712]" style="background-color: #030712 !important;">
+                <!-- Line Numbers -->
+                <div id="line-numbers" class="w-12 bg-[#0b0f19] border-r border-white/5 py-4 px-2 text-right text-xs font-mono text-gray-500 select-none flex-shrink-0 leading-6" style="background-color: #0b0f19 !important;">
+                    1
+                </div>
+
+                <!-- Text Area Editor -->
+                <textarea id="code-editor" spellcheck="false" 
+                    class="flex-grow bg-[#030712] p-4 text-sm font-mono text-emerald-400 resize-none focus:outline-none leading-6 whitespace-pre overflow-auto code-theme"
+                    style="background-color: #030712 !important; color: #34d399 !important;"
+                    placeholder="Write your code here...">{{ initial_code }}</textarea>
+            </div>
+        </div>
+
+        <!-- RIGHT: Terminal Output Pane -->
+        <div class="flex-1 flex flex-col h-full overflow-hidden bg-[#030712]" style="background-color: #030712 !important;">
+            <!-- Output Header Bar -->
+            <div class="glass border-b border-white/10 px-6 py-3 flex items-center justify-between flex-shrink-0">
+                <div class="flex items-center space-x-3">
+                    <span class="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center space-x-1.5">
+                        <i data-lucide="terminal-square" class="w-4 h-4 text-brand-400"></i>
+                        <span>Output Console</span>
+                    </span>
+                    <span id="output-badge" class="hidden text-[11px] font-mono px-2 py-0.5 rounded-full border"></span>
+                    <span id="time-badge" class="hidden text-[11px] font-mono text-gray-400"></span>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <button onclick="copyOutput()" class="glass hover:bg-white/5 text-gray-400 hover:text-white p-1.5 rounded-lg transition" title="Copy Output">
+                        <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <button onclick="clearOutput()" class="glass hover:bg-white/5 text-gray-400 hover:text-white p-1.5 rounded-lg transition" title="Clear Console">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Terminal Output Area -->
+            <div class="flex-grow p-6 font-mono text-sm overflow-y-auto space-y-4" id="console-scroll">
+                <div id="console-output" class="text-gray-300 whitespace-pre-wrap leading-relaxed">
+<span class="text-gray-500">Welcome to Diva AI Interactive Playground.
+Press "Run Code" or Ctrl+Enter to execute.</span>
+                </div>
+
+                <!-- AI Error Explainer Banner (Appears on failure) -->
+                <div id="ai-error-box" class="hidden glass p-5 rounded-2xl border border-rose-500/20 bg-rose-950/10 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2 text-rose-400">
+                            <i data-lucide="sparkles" class="w-4 h-4"></i>
+                            <span class="text-xs font-bold uppercase tracking-wider">AI Debug Assistant</span>
+                        </div>
+                        <button onclick="explainCurrentError()" id="explain-btn" class="bg-rose-600/80 hover:bg-rose-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition flex items-center space-x-1.5">
+                            <i data-lucide="bot" class="w-3.5 h-3.5"></i>
+                            <span>Explain This Error</span>
+                        </button>
+                    </div>
+                    <div id="ai-explanation-content" class="hidden text-xs text-gray-200 prose prose-invert max-w-none pt-2 border-t border-rose-500/10"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const templates = {{ templates|tojson }};
+    let lastStderr = "";
+    let lastCode = "";
+
+    document.addEventListener("DOMContentLoaded", function() {
+        updateLineNumbers();
+        
+        const editor = document.getElementById("code-editor");
+        
+        // Listen to input for line numbers
+        editor.addEventListener("input", updateLineNumbers);
+        editor.addEventListener("scroll", syncScroll);
+
+        // Support Tab indentation in textarea
+        editor.addEventListener("keydown", function(e) {
+            if (e.key === "Tab") {
+                e.preventDefault();
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                this.value = this.value.substring(0, start) + "    " + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = start + 4;
+                updateLineNumbers();
+            } else if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                e.preventDefault();
+                runCode();
+            }
+        });
+    });
+
+    function updateLineNumbers() {
+        const editor = document.getElementById("code-editor");
+        const lineNumbers = document.getElementById("line-numbers");
+        const lineCount = editor.value.split("\n").length;
+        
+        let linesHtml = "";
+        for (let i = 1; i <= Math.max(lineCount, 1); i++) {
+            linesHtml += i + "<br>";
+        }
+        lineNumbers.innerHTML = linesHtml;
+    }
+
+    function syncScroll() {
+        const editor = document.getElementById("code-editor");
+        const lineNumbers = document.getElementById("line-numbers");
+        lineNumbers.scrollTop = editor.scrollTop;
+    }
+
+    function changeLanguage() {
+        loadTemplate();
+    }
+
+    function loadTemplate() {
+        const lang = document.getElementById("language-select").value;
+        const code = templates[lang] || templates["python"];
+        document.getElementById("code-editor").value = code;
+        updateLineNumbers();
+        document.getElementById("exec-status").innerText = `Template loaded for ${lang}`;
+    }
+
+    function toggleStdin() {
+        const panel = document.getElementById("stdin-panel");
+        panel.classList.toggle("hidden");
+    }
+
+    function clearOutput() {
+        document.getElementById("console-output").innerHTML = '<span class="text-gray-500">Console cleared.</span>';
+        document.getElementById("output-badge").classList.add("hidden");
+        document.getElementById("time-badge").classList.add("hidden");
+        document.getElementById("ai-error-box").classList.add("hidden");
+    }
+
+    function copyOutput() {
+        const text = document.getElementById("console-output").innerText;
+        navigator.clipboard.writeText(text);
+        alert("Output copied to clipboard!");
+    }
+
+    async function runCode() {
+        const lang = document.getElementById("language-select").value;
+        const code = document.getElementById("code-editor").value;
+        const stdin = document.getElementById("stdin-input").value;
+
+        if (!code.trim()) return;
+
+        const runBtn = document.getElementById("run-btn");
+        const runText = document.getElementById("run-btn-text");
+        const runIcon = document.getElementById("run-icon");
+        const status = document.getElementById("exec-status");
+        const outputEl = document.getElementById("console-output");
+        const outputBadge = document.getElementById("output-badge");
+        const timeBadge = document.getElementById("time-badge");
+        const aiBox = document.getElementById("ai-error-box");
+        const aiContent = document.getElementById("ai-explanation-content");
+
+        // Loading state
+        runBtn.disabled = true;
+        runText.innerText = "Running...";
+        runIcon.classList.add("animate-spin");
+        status.innerText = "Compiling & Executing...";
+        outputEl.innerHTML = '<span class="text-brand-400 animate-pulse">Running program on sandbox runtime...</span>';
+        aiBox.classList.add("hidden");
+        aiContent.classList.add("hidden");
+
+        lastCode = code;
+
+        try {
+            const res = await fetch("/compiler/execute", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ language: lang, code: code, stdin: stdin })
+            });
+
+            const data = await res.json();
+
+            // Format Output
+            let displayHtml = "";
+            
+            if (data.stdout) {
+                displayHtml += `<span class="text-gray-100">${escapeHtml(data.stdout)}</span>`;
+            }
+            
+            if (data.stderr) {
+                lastStderr = data.stderr;
+                if (displayHtml) displayHtml += "\n";
+                displayHtml += `<span class="text-rose-400 font-semibold">${escapeHtml(data.stderr)}</span>`;
+                aiBox.classList.remove("hidden");
+            } else {
+                lastStderr = "";
+            }
+
+            if (!data.stdout && !data.stderr) {
+                displayHtml = '<span class="text-gray-500">(Program executed successfully with no output)</span>';
+            }
+
+            outputEl.innerHTML = displayHtml;
+
+            // Badges
+            outputBadge.classList.remove("hidden");
+            timeBadge.classList.remove("hidden");
+            timeBadge.innerText = `${data.executionTimeMs}ms`;
+
+            if (data.success) {
+                outputBadge.className = "text-[11px] font-mono px-2.5 py-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300";
+                outputBadge.innerText = `Exit Code: 0 (${data.version || lang})`;
+                status.innerText = `Completed in ${data.executionTimeMs}ms`;
+            } else {
+                outputBadge.className = "text-[11px] font-mono px-2.5 py-0.5 rounded-full border border-rose-500/30 bg-rose-500/10 text-rose-300";
+                outputBadge.innerText = `Exit Code: ${data.exitCode}`;
+                status.innerText = `Exited with error (${data.executionTimeMs}ms)`;
+            }
+
+        } catch (err) {
+            outputEl.innerHTML = `<span class="text-rose-400">Execution request failed: ${escapeHtml(err.message)}</span>`;
+            status.innerText = "Network / Request Error";
+        } finally {
+            runBtn.disabled = false;
+            runText.innerText = "Run Code";
+            runIcon.classList.remove("animate-spin");
+            safeCreateIcons();
+        }
+    }
+
+    async function explainCurrentError() {
+        if (!lastStderr) return;
+
+        const lang = document.getElementById("language-select").value;
+        const btn = document.getElementById("explain-btn");
+        const contentDiv = document.getElementById("ai-explanation-content");
+
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i><span>Analyzing...</span>';
+        safeCreateIcons();
+
+        try {
+            const res = await fetch("/compiler/explain", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ language: lang, code: lastCode, error: lastStderr })
+            });
+            const data = await res.json();
+
+            contentDiv.classList.remove("hidden");
+            contentDiv.innerHTML = marked.parse(data.explanation || "No explanation available.");
+        } catch (e) {
+            contentDiv.classList.remove("hidden");
+            contentDiv.innerText = "Failed to fetch AI explanation.";
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="bot" class="w-3.5 h-3.5"></i><span>Explain This Error</span>';
+            safeCreateIcons();
+        }
+    }
+
+    function escapeHtml(str) {
+        return str
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+</script>
+{% endblock %}

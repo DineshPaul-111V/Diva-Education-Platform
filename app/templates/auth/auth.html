@@ -1,0 +1,125 @@
+{% extends "layout.html" %}
+
+{% block title %}Sign In / Register - Diva AI{% endblock %}
+
+{% block content %}
+<div class="flex-grow w-full max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-center p-6 md:p-12 gap-12">
+    <!-- Left Hero Pane -->
+    <div class="flex-1 text-center md:text-left space-y-6">
+        <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight bg-gradient-to-r from-white via-indigo-100 to-brand-500 bg-clip-text text-transparent">
+            Unlock Adaptive Learning.
+        </h1>
+        <p class="text-gray-400 text-lg leading-relaxed max-w-lg">
+            Experience a fully automated, AI-driven learning platform tailored directly to your CS/IT goals. Diagnoses your skill level, constructs roadmap sequences, and tutors you using personalized RAG context.
+        </p>
+        <div class="flex flex-wrap justify-center md:justify-start gap-4">
+            <div class="glass px-4 py-2 rounded-xl flex items-center space-x-2">
+                <i data-lucide="git-branch" class="w-5 h-5 text-brand-500"></i>
+                <span class="text-sm font-medium text-gray-300">Custom Roadmaps</span>
+            </div>
+            <div class="glass px-4 py-2 rounded-xl flex items-center space-x-2">
+                <i data-lucide="brain-circuit" class="w-5 h-5 text-indigo-400"></i>
+                <span class="text-sm font-medium text-gray-300">Adaptive Reteach</span>
+            </div>
+            <div class="glass px-4 py-2 rounded-xl flex items-center space-x-2">
+                <i data-lucide="radar" class="w-5 h-5 text-violet-400"></i>
+                <span class="text-sm font-medium text-gray-300">Telemetry Tracking</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Forms Pane -->
+    <div class="w-full max-w-md glass p-8 rounded-3xl shadow-2xl relative overflow-hidden" id="auth-forms-container">
+        <!-- Background glows -->
+        <div class="absolute -top-12 -right-12 w-32 h-32 bg-brand-500/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div class="absolute -bottom-12 -left-12 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+        <!-- Tabs -->
+        <div class="flex border-b border-white/10 mb-8">
+            <button onclick="switchTab('login')" id="login-tab" class="flex-1 pb-3 text-center font-semibold text-white border-b-2 border-brand-500 transition-all duration-200">
+                Sign In
+            </button>
+            <button onclick="switchTab('register')" id="register-tab" class="flex-1 pb-3 text-center font-semibold text-gray-400 hover:text-white transition-all duration-200">
+                Register
+            </button>
+        </div>
+
+        <!-- Login Form -->
+        <form action="{{ url_for('auth.login') }}" method="POST" id="login-form-el" class="space-y-5">
+            {{ login_form.hidden_tag() }}
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Email Address</label>
+                <div class="relative">
+                    <i data-lucide="mail" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500"></i>
+                    <input type="email" name="email" required placeholder="name@domain.com" 
+                        class="w-full bg-dark-900 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Password</label>
+                <div class="relative">
+                    <i data-lucide="lock" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500"></i>
+                    <input type="password" name="password" required placeholder="••••••••" 
+                        class="w-full bg-dark-900 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition">
+                </div>
+            </div>
+            <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-semibold py-3 rounded-xl shadow-lg shadow-brand-500/20 active:scale-[0.98] transition">
+                Sign In to Account
+            </button>
+        </form>
+
+        <!-- Register Form -->
+        <form action="{{ url_for('auth.register') }}" method="POST" id="register-form-el" class="space-y-5 hidden">
+            {{ register_form.hidden_tag() }}
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Full Name</label>
+                <div class="relative">
+                    <i data-lucide="user" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500"></i>
+                    <input type="text" name="name" placeholder="John Doe" 
+                        class="w-full bg-dark-900 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Email Address</label>
+                <div class="relative">
+                    <i data-lucide="mail" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500"></i>
+                    <input type="email" name="email" required placeholder="name@domain.com" 
+                        class="w-full bg-dark-900 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Password</label>
+                <div class="relative">
+                    <i data-lucide="lock" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500"></i>
+                    <input type="password" name="password" required placeholder="Min 8 chars, 1 num, 1 symbol" 
+                        class="w-full bg-dark-900 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition">
+                </div>
+            </div>
+            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl shadow-lg shadow-indigo-500/20 active:scale-[0.98] transition">
+                Create Account
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function switchTab(tab) {
+        const loginForm = document.getElementById('login-form-el');
+        const regForm = document.getElementById('register-form-el');
+        const loginTab = document.getElementById('login-tab');
+        const regTab = document.getElementById('register-tab');
+
+        if (tab === 'login') {
+            loginForm.classList.remove('hidden');
+            regForm.classList.add('hidden');
+            loginTab.className = "flex-1 pb-3 text-center font-semibold text-white border-b-2 border-brand-500 transition-all duration-200";
+            regTab.className = "flex-1 pb-3 text-center font-semibold text-gray-400 hover:text-white transition-all duration-200";
+        } else {
+            loginForm.classList.add('hidden');
+            regForm.classList.remove('hidden');
+            regTab.className = "flex-1 pb-3 text-center font-semibold text-white border-b-2 border-brand-500 transition-all duration-200";
+            loginTab.className = "flex-1 pb-3 text-center font-semibold text-gray-400 hover:text-white transition-all duration-200";
+        }
+    }
+</script>
+{% endblock %}

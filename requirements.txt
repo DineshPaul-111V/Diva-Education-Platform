@@ -1,0 +1,17 @@
+flask
+flask-sqlalchemy
+flask-migrate
+flask-login
+flask-bcrypt
+flask-wtf
+flask-limiter
+psycopg2-binary
+pgvector
+groq
+pydantic
+python-dotenv
+flask-apscheduler
+requests
+email-validator
+PyPDF2
+google-genai

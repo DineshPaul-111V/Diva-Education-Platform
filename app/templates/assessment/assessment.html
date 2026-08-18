@@ -1,0 +1,190 @@
+{% extends "layout.html" %}
+
+{% block title %}Placement Assessment - Diva AI{% endblock %}
+
+{% block content %}
+<div class="flex-grow flex items-center justify-center p-6 md:p-12">
+    <!-- Assessment Panel -->
+    <div class="w-full max-w-3xl glass p-8 md:p-10 rounded-3xl shadow-2xl relative overflow-hidden space-y-8" id="assessment-panel">
+        <!-- Progress Info -->
+        <div class="flex items-center justify-between text-sm">
+            <span class="text-gray-400">Question <span id="current-q-idx" class="text-white font-semibold">1</span> of <span id="total-q-count" class="text-white font-semibold">8</span></span>
+            <span class="text-indigo-400 font-semibold" id="current-q-tier">Beginner</span>
+        </div>
+        <!-- Progress Bar -->
+        <div class="w-full bg-dark-900 h-2 rounded-full overflow-hidden border border-white/5">
+            <div id="assessment-progress-bar" class="bg-gradient-to-r from-brand-600 to-indigo-500 h-full rounded-full transition-all duration-300" style="width: 12.5%"></div>
+        </div>
+
+        <!-- Question Content -->
+        <div class="space-y-6 animate-fade-in" id="question-container">
+            <h2 class="text-xl md:text-2xl font-bold text-white leading-snug" id="question-text">Loading question...</h2>
+            
+            <div class="grid grid-cols-1 gap-4" id="options-container">
+                <!-- Options rendered dynamically -->
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex items-center justify-between pt-6 border-t border-white/10">
+            <button onclick="prevQuestion()" id="prev-btn" class="glass hover:bg-white/5 text-gray-300 px-5 py-2.5 rounded-xl transition flex items-center space-x-2 disabled:opacity-50 disabled:pointer-events-none">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                <span>Previous</span>
+            </button>
+            <button onclick="nextQuestion()" id="next-btn" class="bg-brand-600 hover:bg-brand-500 text-white px-6 py-2.5 rounded-xl transition flex items-center space-x-2">
+                <span id="next-btn-text">Next Question</span>
+                <i data-lucide="arrow-right" class="w-4 h-4" id="next-btn-icon"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Generating Roadmap Loading state -->
+    <div class="w-full max-w-md glass p-10 rounded-3xl shadow-2xl text-center space-y-6 hidden" id="submitting-panel">
+        <div class="flex justify-center">
+            <div class="w-16 h-16 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+        <div class="space-y-2">
+            <h2 class="text-xl font-bold text-white">Synthesizing Personal Roadmap...</h2>
+            <p class="text-gray-400 text-sm">Grading performance, mapping misconceptions, and ordering cumulative curriculum nodes.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    let diagnosticData = null;
+    let currentIdx = 0;
+    let answers = []; // Array of selected indices
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const raw = sessionStorage.getItem('diagnostic_data');
+        if (!raw) {
+            alert("No assessment session found. Redirecting...");
+            window.location.href = "{{ url_for('learning.new_path') }}";
+            return;
+        }
+
+        diagnosticData = JSON.parse(raw);
+        document.getElementById('total-q-count').innerText = diagnosticData.questions.length;
+        
+        // Initialize answers array with nulls
+        answers = new Array(diagnosticData.questions.length).fill(null);
+        
+        renderQuestion();
+    });
+
+    function renderQuestion() {
+        const q = diagnosticData.questions[currentIdx];
+        
+        // Update headers
+        document.getElementById('current-q-idx').innerText = currentIdx + 1;
+        document.getElementById('current-q-tier').innerText = q.tier;
+        
+        // Progress bar
+        const progressPct = ((currentIdx + 1) / diagnosticData.questions.length) * 100;
+        document.getElementById('assessment-progress-bar').style.width = progressPct + "%";
+        
+        // Question Text
+        document.getElementById('question-text').innerText = q.question;
+        
+        // Options
+        const container = document.getElementById('options-container');
+        container.innerHTML = '';
+        q.options.forEach((opt, idx) => {
+            const isSelected = answers[currentIdx] === idx;
+            const borderClass = isSelected ? 'border-brand-500 bg-brand-500/10' : 'border-white/10 hover:bg-white/5';
+            const iconClass = isSelected ? 'bg-brand-500 text-white border-brand-500' : 'border-white/20';
+            
+            container.innerHTML += `
+                <button onclick="selectOption(${idx})" class="w-full flex items-center justify-between text-left p-4 rounded-xl border ${borderClass} transition-all duration-200">
+                    <span class="text-gray-200 font-medium text-sm md:text-base">${opt}</span>
+                    <div class="w-5 h-5 rounded-full border flex items-center justify-center ${iconClass} flex-shrink-0 ml-4">
+                        ${isSelected ? '<i data-lucide="check" class="w-3.5 h-3.5"></i>' : ''}
+                    </div>
+                </button>
+            `;
+        });
+        
+        // Controls state
+        document.getElementById('prev-btn').disabled = currentIdx === 0;
+        
+        const isLast = currentIdx === diagnosticData.questions.length - 1;
+        document.getElementById('next-btn-text').innerText = isLast ? 'Submit Placement' : 'Next Question';
+        
+        safeCreateIcons();
+    }
+
+    function selectOption(idx) {
+        answers[currentIdx] = idx;
+        renderQuestion();
+    }
+
+    function prevQuestion() {
+        if (currentIdx > 0) {
+            currentIdx--;
+            renderQuestion();
+        }
+    }
+
+    function nextQuestion() {
+        const isLast = currentIdx === diagnosticData.questions.length - 1;
+        
+        if (answers[currentIdx] === null) {
+            alert("Please choose an answer before moving forward.");
+            return;
+        }
+
+        if (isLast) {
+            submitAssessment();
+        } else {
+            currentIdx++;
+            renderQuestion();
+        }
+    }
+
+    function submitAssessment() {
+        // Show loading state
+        document.getElementById('assessment-panel').classList.add('hidden');
+        document.getElementById('submitting-panel').classList.remove('hidden');
+
+        // Formulate request body
+        const formattedAnswers = diagnosticData.questions.map((q, idx) => ({
+            id: q.id,
+            selectedIndex: answers[idx]
+        }));
+
+        const payload = {
+            domain: diagnosticData.domain,
+            skillMap: diagnosticData.skillMap,
+            questions: diagnosticData.questions,
+            answers: formattedAnswers
+        };
+
+        fetch('/learning/diagnostic/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(res => {
+            if (!res.ok) {
+                return res.json().then(data => {
+                    throw new Error(data.error || "Failed to compile placement test.");
+                }).catch(() => {
+                    throw new Error("Failed to compile placement test.");
+                });
+            }
+            return res.json();
+        })
+        .then(resData => {
+            // Clear assessment data
+            sessionStorage.removeItem('diagnostic_data');
+            // Redirect to the newly generated roadmap page
+            window.location.href = `/learning/roadmap/${resData.learningPathId}`;
+        })
+        .catch(err => {
+            alert(err.message);
+            document.getElementById('assessment-panel').classList.remove('hidden');
+            document.getElementById('submitting-panel').classList.add('hidden');
+        });
+    }
+</script>
+{% endblock %}

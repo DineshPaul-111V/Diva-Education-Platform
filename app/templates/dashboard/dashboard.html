@@ -1,0 +1,2175 @@
+{% extends "layout.html" %}
+
+{% block title %}Dashboard - Diva AI{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl w-full mx-auto p-6 md:p-12 space-y-8">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-extrabold text-white">Welcome back, {{ current_user.name or 'Learner' }}!</h1>
+            <p class="text-gray-400 mt-1">Here is your customized mastery progression progress.</p>
+        </div>
+        {% if not active_path %}
+        <a href="{{ url_for('learning.new_path') }}"
+            class="inline-flex items-center space-x-2 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white px-6 py-3 rounded-xl shadow-lg transition">
+            <i data-lucide="plus-circle" class="w-5 h-5"></i>
+            <span>Start New Learning Path</span>
+        </a>
+        {% else %}
+        <div class="flex items-center space-x-3">
+            <a href="{{ url_for('learning.new_path') }}"
+                class="glass hover:bg-white/5 text-gray-300 px-5 py-2.5 rounded-xl transition">
+                New Path
+            </a>
+            <a href="{{ url_for('learning.roadmap_view', path_id=active_path.id) }}"
+                class="bg-brand-600 hover:bg-brand-500 text-white px-5 py-2.5 rounded-xl transition flex items-center space-x-1">
+                <i data-lucide="map" class="w-4 h-4"></i>
+                <span>Resume Roadmap</span>
+            </a>
+            <button onclick="document.getElementById('notes-upload').click()"
+                class="bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/50 text-indigo-200 px-5 py-2.5 rounded-xl transition flex items-center space-x-1"
+                title="Upload your PDF notes so your AI Tutor can reference them">
+                <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+                <span>Upload Notes</span>
+            </button>
+            <input type="file" id="notes-upload" class="hidden" accept=".pdf" onchange="handleNotesUpload(this)">
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Stats Grid: Enhanced Gamification & Streak Sanctuary -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- XP & Level Card -->
+        <div class="glass p-6 rounded-2xl flex items-center space-x-4">
+            <div
+                class="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+                <i data-lucide="zap" class="w-6 h-6 text-amber-400"></i>
+            </div>
+            <div>
+                <span class="block text-xs font-medium text-gray-400 uppercase tracking-wider">Total Experience</span>
+                <span class="text-2xl font-bold text-white mt-1" id="stat-xp">--</span>
+            </div>
+        </div>
+
+        <!-- Enhanced Streak Sanctuary with Flame & 7-Day Activity Ring -->
+        <div class="glass p-5 rounded-2xl flex flex-col justify-between space-y-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/20 text-white"
+                        id="streak-flame-box">
+                        <i data-lucide="flame" class="w-5 h-5 animate-pulse" id="streak-flame-icon"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="block text-[11px] font-medium text-gray-400 uppercase tracking-wider">Current
+                                Streak</span>
+                            <span id="streak-tier-tag"
+                                class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-300 border border-amber-500/20">Ember</span>
+                        </div>
+                        <span class="text-xl font-bold text-white" id="stat-streak">0 Days</span>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span id="streak-multiplier-badge"
+                        class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30">1.0x
+                        XP</span>
+                    <div class="text-[10px] text-gray-400 mt-1 flex items-center gap-1 justify-end">
+                        <i data-lucide="shield" class="w-3 h-3 text-indigo-400"></i>
+                        <span id="streak-freeze-txt">1 Shield</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7-Day Activity Ring (Mon-Sun) -->
+            <div class="flex items-center justify-between border-t border-white/5 pt-2" id="week-activity-ring">
+                <!-- Dynamic 7 Day Dots -->
+            </div>
+        </div>
+
+        <!-- Path Completion -->
+        <div class="glass p-6 rounded-2xl flex items-center space-x-4">
+            <div
+                class="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
+                <i data-lucide="check-circle-2" class="w-6 h-6 text-indigo-400"></i>
+            </div>
+            <div>
+                <span class="block text-xs font-medium text-gray-400 uppercase tracking-wider">Path Completion</span>
+                <span class="text-2xl font-bold text-white mt-1" id="stat-completion">--</span>
+            </div>
+        </div>
+    </div>
+
+    {% if active_path %}
+    <!-- Active Path Detail & Radar Chart -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Left: Course detail & lessons -->
+        <div class="lg:col-span-2 space-y-6 flex flex-col">
+            <div class="glass p-8 rounded-2xl space-y-6 flex-grow">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <span
+                            class="text-xs font-bold uppercase tracking-wider bg-brand-500/10 text-brand-400 border border-brand-500/20 px-2.5 py-1 rounded-full">
+                            Active Path
+                        </span>
+                        <h2 class="text-2xl font-bold text-white mt-3" id="path-domain">--</h2>
+                        <p class="text-gray-400 mt-1">Starting Level: <span class="text-indigo-400 font-semibold"
+                                id="path-level">--</span></p>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-400">Roadmap Progress</span>
+                        <span class="text-white font-semibold" id="progress-pct-txt">0%</span>
+                    </div>
+                    <div class="w-full bg-dark-900 rounded-full h-3 overflow-hidden border border-white/5">
+                        <div class="bg-gradient-to-r from-brand-600 to-indigo-500 h-full rounded-full transition-all duration-500"
+                            id="progress-bar-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Topics Needing Review (Spaced Repetition Decay) -->
+                <div class="pt-6 border-t border-white/10" id="review-container">
+                    <h3 class="text-lg font-bold text-white mb-4 flex items-center space-x-2">
+                        <i data-lucide="refresh-cw" class="w-5 h-5 text-indigo-400 animate-spin-slow"></i>
+                        <span>Topics Needing Review</span>
+                    </h3>
+                    <div class="space-y-3" id="review-list">
+                        <!-- Dynamic items -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Enhanced Interactive Mastery Profile -->
+        <div class="glass p-6 rounded-2xl flex flex-col justify-between space-y-5">
+            <!-- Header with Grade & Score -->
+            <div class="flex items-start justify-between border-b border-white/10 pb-3.5">
+                <div>
+                    <h3 class="text-base font-bold text-white flex items-center gap-2">
+                        <i data-lucide="shield-check" class="w-5 h-5 text-brand-400"></i>
+                        <span>Mastery Profile</span>
+                    </h3>
+                    <p class="text-xs text-gray-400 mt-0.5">Competency & Skill Evaluation</p>
+                </div>
+                <div class="text-right">
+                    <div class="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-brand-500/20 border border-brand-500/30 text-brand-300 text-xs font-bold shadow-sm"
+                        id="mastery-grade-badge">
+                        <span id="mastery-badge-icon">🎯</span>
+                        <span id="mastery-grade-text">Evaluating...</span>
+                    </div>
+                    <div class="text-xl font-extrabold text-white mt-1" id="overall-mastery-score">0%</div>
+                </div>
+            </div>
+
+            <!-- 4 Mastery Tier Metric Counters -->
+            <div class="grid grid-cols-4 gap-2 text-center text-xs">
+                <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-2">
+                    <div class="text-emerald-400 font-bold text-base" id="stat-mastered-count">0</div>
+                    <div class="text-[10px] text-gray-400 font-medium">Mastered</div>
+                </div>
+                <div class="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-2">
+                    <div class="text-indigo-400 font-bold text-base" id="stat-proficient-count">0</div>
+                    <div class="text-[10px] text-gray-400 font-medium">Proficient</div>
+                </div>
+                <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-2">
+                    <div class="text-amber-400 font-bold text-base" id="stat-developing-count">0</div>
+                    <div class="text-[10px] text-gray-400 font-medium">Developing</div>
+                </div>
+                <div class="bg-rose-500/10 border border-rose-500/20 rounded-xl p-2">
+                    <div class="text-rose-400 font-bold text-base" id="stat-needs-focus-count">0</div>
+                    <div class="text-[10px] text-gray-400 font-medium">Focus</div>
+                </div>
+            </div>
+
+            <!-- View Switcher Tabs -->
+            <div
+                class="flex items-center space-x-1 bg-dark-900/80 p-1 rounded-xl border border-white/5 text-xs font-semibold">
+                <button type="button" onclick="switchMasteryTab('radar')" id="tab-btn-radar"
+                    class="flex-1 py-1.5 px-2 rounded-lg bg-brand-600 text-white transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer">
+                    <i data-lucide="radar" class="w-3.5 h-3.5"></i>
+                    <span>Radar</span>
+                </button>
+                <button type="button" onclick="switchMasteryTab('skills')" id="tab-btn-skills"
+                    class="flex-1 py-1.5 px-2 rounded-lg text-gray-400 hover:text-white transition flex items-center justify-center gap-1.5 cursor-pointer">
+                    <i data-lucide="list-checks" class="w-3.5 h-3.5"></i>
+                    <span>Skills</span>
+                </button>
+                <button type="button" onclick="switchMasteryTab('insights')" id="tab-btn-insights"
+                    class="flex-1 py-1.5 px-2 rounded-lg text-gray-400 hover:text-white transition flex items-center justify-center gap-1.5 cursor-pointer">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                    <span>Insights</span>
+                </button>
+            </div>
+
+            <!-- Tab Content 1: Radar Chart View -->
+            <div id="mastery-tab-radar"
+                class="w-full relative aspect-square max-w-[280px] mx-auto flex items-center justify-center">
+                <canvas id="masteryRadarChart"></canvas>
+            </div>
+
+            <!-- Tab Content 2: Skills Breakdown List View -->
+            <div id="mastery-tab-skills" class="hidden w-full max-h-[280px] overflow-y-auto space-y-2 pr-1 text-xs">
+                <div id="skills-breakdown-list" class="space-y-2">
+                    <!-- Dynamic Skill Bars -->
+                </div>
+            </div>
+
+            <!-- Tab Content 3: Insights & Tier Progress View -->
+            <div id="mastery-tab-insights" class="hidden w-full space-y-3 text-xs">
+                <!-- Top Strength Banner -->
+                <div
+                    class="bg-gradient-to-r from-emerald-950/40 to-dark-900/60 border border-emerald-500/30 rounded-xl p-3 space-y-1">
+                    <div class="flex items-center space-x-1.5 text-emerald-400 font-bold">
+                        <i data-lucide="award" class="w-4 h-4"></i>
+                        <span>Top Strength</span>
+                    </div>
+                    <p class="text-gray-200 font-medium text-xs" id="insight-top-strength">Analyzing...</p>
+                </div>
+
+                <!-- Growth Focus Area -->
+                <div
+                    class="bg-gradient-to-r from-amber-950/40 to-dark-900/60 border border-amber-500/30 rounded-xl p-3 space-y-1">
+                    <div class="flex items-center space-x-1.5 text-amber-400 font-bold">
+                        <i data-lucide="target" class="w-4 h-4"></i>
+                        <span>Priority Growth Target</span>
+                    </div>
+                    <p class="text-gray-200 font-medium text-xs" id="insight-top-growth">Analyzing...</p>
+                </div>
+
+                <!-- Tier Progression Bars -->
+                <div class="bg-dark-900/60 border border-white/5 rounded-xl p-3 space-y-2">
+                    <div class="text-[11px] font-semibold text-gray-400">Curriculum Tier Mastery</div>
+                    <div id="tier-breakdown-container" class="space-y-1.5">
+                        <!-- Dynamic Tier Bars -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- HERO CARD: DIVA DAILY SUDOKU BRAIN ARENA (Set below active path) -->
+    <div class="glass p-6 md:p-7 rounded-3xl border border-brand-500/30 bg-gradient-to-r from-brand-950/40 via-dark-900/95 to-indigo-950/30 shadow-2xl relative overflow-hidden"
+        id="daily-sudoku-section">
+        <!-- Ambient Glow -->
+        <div class="absolute -top-24 -right-24 w-60 h-60 bg-brand-500/10 rounded-full blur-3xl pointer-events-none">
+        </div>
+
+        <!-- Top Header & Controls -->
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4 relative z-10">
+            <div class="flex items-center space-x-3">
+                <div
+                    class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 via-indigo-600 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-brand-500/20">
+                    <i data-lucide="grid" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <h2 class="text-base font-bold text-white">Diva Daily Sudoku Arena</h2>
+                        <span id="sudoku-status-pill"
+                            class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            +50 XP Daily Booster
+                        </span>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-0.5">Train deductive logic & constraint elimination to power your
+                        streak!</p>
+                </div>
+            </div>
+
+            <!-- Size Selector Tabs & Action Buttons -->
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Size Switcher -->
+                <div
+                    class="flex items-center bg-dark-950/80 p-1 rounded-xl border border-white/10 text-xs font-semibold">
+                    <button type="button" onclick="switchSudokuSize(4)" id="sudoku-size-4"
+                        class="px-2.5 py-1 rounded-lg bg-brand-600 text-white transition shadow cursor-pointer">
+                        ⚡ 4x4 Mini
+                    </button>
+                    <button type="button" onclick="switchSudokuSize(6)" id="sudoku-size-6"
+                        class="px-2.5 py-1 rounded-lg text-gray-400 hover:text-white transition cursor-pointer">
+                        🧩 6x6 Medium
+                    </button>
+                    <button type="button" onclick="switchSudokuSize(9)" id="sudoku-size-9"
+                        class="px-2.5 py-1 rounded-lg text-gray-400 hover:text-white transition cursor-pointer">
+                        🏆 9x9 Classic
+                    </button>
+                </div>
+
+                <!-- Timer & Mistakes -->
+                <div
+                    class="flex items-center space-x-2 text-xs font-mono bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl">
+                    <span class="text-amber-300 flex items-center gap-1">
+                        <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                        <span id="sudoku-timer">00:00</span>
+                    </span>
+                    <span class="text-gray-500">|</span>
+                    <span class="text-rose-400 flex items-center gap-1">
+                        <i data-lucide="heart" class="w-3.5 h-3.5 fill-current"></i>
+                        <span id="sudoku-mistakes">0/3</span>
+                    </span>
+                </div>
+
+                <!-- Hint Button -->
+                <button type="button" onclick="askDivaSudokuHint()" id="sudoku-hint-btn"
+                    class="px-3 py-1.5 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 text-brand-300 hover:text-white text-xs font-semibold border border-brand-500/30 transition flex items-center space-x-1.5 shadow cursor-pointer"
+                    title="Ask Diva for a step-by-step deductive clue">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5 text-brand-400"></i>
+                    <span>Diva Hint 🎙️</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Sudoku Arena Grid & Controls -->
+        <div class="mt-5 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center relative z-10">
+            <!-- Left/Center: The Sudoku Grid -->
+            <div class="lg:col-span-7 flex flex-col items-center justify-center">
+                <div id="sudoku-grid-container"
+                    class="inline-block bg-dark-950 p-3 rounded-2xl border-2 border-brand-500/30 shadow-2xl transition-all duration-300 max-w-full overflow-x-auto">
+                    <!-- Dynamic Grid generated via JS -->
+                </div>
+            </div>
+
+            <!-- Right: Interactive Keypad & Control Palette -->
+            <div class="lg:col-span-5 flex flex-col justify-between space-y-4">
+                <!-- Hint / AI Explanation Callout -->
+                <div id="sudoku-feedback-box"
+                    class="p-3.5 rounded-2xl bg-dark-950/80 border border-white/10 text-xs text-gray-300 space-y-1 min-h-[70px] flex flex-col justify-center">
+                    <div class="flex items-center space-x-1.5 text-brand-400 font-semibold mb-0.5">
+                        <i data-lucide="lightbulb" class="w-3.5 h-3.5"></i>
+                        <span>Diva Socratic Tutor</span>
+                    </div>
+                    <p id="sudoku-feedback-txt" class="text-gray-300 leading-relaxed text-xs">
+                        Select a cell and tap a number to fill it. Tap matching numbers to highlight them across the
+                        board!
+                    </p>
+                </div>
+
+                <!-- Number Keypad -->
+                <div class="space-y-2">
+                    <div
+                        class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider flex items-center justify-between">
+                        <span>Input Pad</span>
+                        <span class="text-xs font-normal text-indigo-300 cursor-pointer select-none"
+                            id="pencil-mode-indicator" onclick="togglePencilMode()">
+                            ✏️ Notes Mode: <b id="pencil-mode-txt" class="text-gray-400">OFF</b>
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-5 gap-2" id="sudoku-keypad">
+                        <!-- Dynamic number buttons 1-9 generated via JS -->
+                    </div>
+                </div>
+
+                <!-- Action Controls Row -->
+                <div class="grid grid-cols-3 gap-2 pt-2 border-t border-white/5">
+                    <button type="button" onclick="eraseSelectedCell()"
+                        class="py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-rose-300 text-xs font-semibold border border-white/10 transition flex items-center justify-center space-x-1.5 cursor-pointer">
+                        <i data-lucide="delete" class="w-3.5 h-3.5"></i>
+                        <span>Erase</span>
+                    </button>
+                    <button type="button" onclick="resetCurrentSudoku()"
+                        class="py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-semibold border border-white/10 transition flex items-center justify-center space-x-1.5 cursor-pointer">
+                        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                        <span>Reset</span>
+                    </button>
+                    <button type="button" onclick="submitSudokuBoard()" id="sudoku-submit-btn"
+                        class="py-2 px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition flex items-center justify-center space-x-1.5 shadow-lg shadow-brand-500/30 cursor-pointer">
+                        <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                        <span>Verify</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Solved Victory Banner Overlay -->
+        <div id="sudoku-victory-modal"
+            class="hidden absolute inset-0 bg-dark-950/95 backdrop-blur-md rounded-3xl z-20 flex flex-col items-center justify-center p-6 text-center space-y-4">
+            <div
+                class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center shadow-xl shadow-emerald-500/30 animate-bounce">
+                <i data-lucide="trophy" class="w-7 h-7"></i>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-xl font-extrabold text-white">Sudoku Solved! 🎉</h3>
+                <p class="text-xs text-emerald-400 font-semibold" id="sudoku-victory-xp">+50 XP Earned & Daily Streak
+                    Boosted!</p>
+                <p class="text-xs text-gray-400 max-w-md mx-auto mt-2" id="sudoku-victory-stats">Completed in 01:45 with
+                    0 mistakes!</p>
+            </div>
+            <div class="flex items-center space-x-3 pt-2">
+                <button type="button" onclick="dismissSudokuVictory()"
+                    class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition shadow-lg shadow-brand-500/20 cursor-pointer">
+                    Keep Playing
+                </button>
+                <button type="button" onclick="switchSudokuSize(6)"
+                    class="px-5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-indigo-200 text-xs font-semibold transition border border-white/10 cursor-pointer"
+                    id="sudoku-next-size-btn">
+                    Try 6x6 Medium &rarr;
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {% if active_path %}
+    <!-- Badge Section -->
+    <div class="glass p-8 rounded-2xl">
+        <h3 class="text-lg font-bold text-white mb-6">Earned Badges</h3>
+        <div class="flex flex-wrap gap-4" id="badge-list">
+            <!-- Dynamic badges -->
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- FLOATING ACTION BUTTON: Diva AI Tutor on Dashboard -->
+<div id="dashboard-floating-actions"
+    class="fixed right-6 bottom-6 z-40 flex flex-col space-y-3 transition-all duration-300">
+    <button onclick="toggleDashboardTutor()"
+        class="group w-14 h-14 p-3.5 rounded-full bg-gradient-to-tr from-brand-600 via-indigo-600 to-purple-600 hover:scale-110 shadow-2xl shadow-brand-500/30 flex items-center justify-center text-white transition-all duration-300 cursor-pointer relative border border-white/20 hover:border-brand-400"
+        title="Diva AI Voice Tutor & Mentor">
+        <i data-lucide="sparkles" class="w-6 h-6 animate-pulse text-white" id="dashboard-tutor-fab-icon"></i>
+        <!-- Mic Indicator Badge -->
+        <span
+            class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-400 border-2 border-dark-950 flex items-center justify-center shadow">
+            <i data-lucide="mic" class="w-2.5 h-2.5 text-dark-950"></i>
+        </span>
+        <!-- Tooltip on Hover -->
+        <span
+            class="absolute right-16 px-3 py-1.5 rounded-xl bg-dark-900/95 border border-brand-500/30 text-white text-xs font-semibold whitespace-nowrap shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+            Ask Diva AI Tutor 🎙️
+        </span>
+    </button>
+</div>
+
+<!-- BACKDROP OVERLAY FOR AI TUTOR DRAWER -->
+<div id="dash-tutor-backdrop" onclick="toggleDashboardTutor(false)"
+    class="fixed inset-0 bg-black/50 backdrop-blur-xs z-40 hidden transition-opacity"></div>
+
+<!-- SLIDE-OVER AI TUTOR DRAWER ON DASHBOARD -->
+<aside
+    class="w-[420px] max-w-[95vw] border-l border-white/10 bg-[#0e1322]/98 backdrop-blur-xl p-5 flex flex-col h-[calc(100vh-73px)] space-y-3 fixed right-0 top-[73px] bottom-0 z-50 translate-x-full transition-all duration-300 shadow-2xl"
+    id="dashboard-tutor-drawer">
+    <!-- Header -->
+    <div class="flex items-center justify-between border-b border-white/10 pb-3 flex-shrink-0">
+        <div class="flex items-center space-x-2.5">
+            <div
+                class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-brand-500/20">
+                <i data-lucide="sparkles" class="w-5 h-5 text-white"></i>
+            </div>
+            <div>
+                <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
+                    <span>Diva AI Tutor</span>
+                    <span id="dash-voice-mode-badge"
+                        class="text-[9px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30 px-1.5 py-0.5 rounded-full uppercase tracking-wider">Voice
+                        Ready</span>
+                </h3>
+                <p class="text-[11px] text-emerald-400 font-medium flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
+                    {% if active_path %}Path: {{ active_path.domain }}{% else %}General Mentor Mode{% endif %}
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-1.5">
+            <!-- TTS Voice Reading Toggle -->
+            <button onclick="toggleDashTTS()" id="dash-tts-toggle"
+                class="w-8 h-8 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 flex items-center justify-center transition border border-brand-500/20"
+                title="Voice Read Aloud (Enabled)">
+                <i data-lucide="volume-2" class="w-4 h-4" id="dash-tts-icon"></i>
+            </button>
+            <!-- Voice Chart / Waveform Panel Toggle -->
+            <button onclick="toggleDashChartPanel()" id="dash-chart-toggle"
+                class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-indigo-300 flex items-center justify-center transition border border-white/10"
+                title="Toggle Live Voice Chart & Visualizer">
+                <i data-lucide="activity" class="w-4 h-4"></i>
+            </button>
+            <!-- Close Button -->
+            <button onclick="toggleDashboardTutor()"
+                class="w-8 h-8 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition"
+                title="Close">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Live Voice Chart / Audio Frequency Visualizer Box -->
+    <div id="dash-voice-chart-panel"
+        class="glass rounded-2xl p-3 border border-brand-500/30 bg-gradient-to-b from-brand-950/40 via-dark-950/60 to-dark-950/90 shadow-lg shadow-brand-950/30 space-y-2.5 flex-shrink-0 transition-all duration-300">
+        <div class="flex items-center justify-between text-xs gap-2">
+            <div class="flex items-center space-x-2">
+                <span class="relative flex h-2.5 w-2.5">
+                    <span id="dash-voice-status-ping"
+                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
+                    <span id="dash-voice-status-dot"
+                        class="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-500 shadow-sm shadow-brand-400"></span>
+                </span>
+                <span id="dash-voice-status-text" class="font-bold text-brand-200 text-xs tracking-wide truncate">Voice
+                    Ready</span>
+            </div>
+            <div class="flex items-center space-x-2 flex-shrink-0">
+                <!-- Dynamic Language Indicator & Selector Badge -->
+                <div class="relative">
+                    <button id="dash-lang-badge-btn" onclick="toggleDashLanguageMenu()"
+                        class="flex items-center space-x-1.5 px-2 py-1 rounded-xl bg-brand-500/15 hover:bg-brand-500/25 border border-brand-500/30 text-brand-200 hover:text-white text-[11px] font-bold transition shadow-sm cursor-pointer"
+                        title="Language: Click to change">
+                        <span id="dash-lang-flag" class="text-xs">🇬🇧</span>
+                        <span id="dash-lang-name" class="tracking-wide">English</span>
+                        <i data-lucide="chevron-down" class="w-3 h-3 text-brand-300"></i>
+                    </button>
+                    <!-- Language Selection Popup Menu -->
+                    <div id="dash-lang-menu"
+                        class="hidden absolute right-0 top-full mt-1.5 w-44 bg-[#0a0f1d]/95 backdrop-blur-xl border border-brand-500/30 rounded-xl p-1.5 shadow-2xl z-50 space-y-0.5">
+                        <button onclick="setDashLanguage('English')"
+                            class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-200 hover:bg-brand-500/20 hover:text-white flex items-center justify-between transition cursor-pointer">
+                            <span>🇬🇧 English</span>
+                            <span class="text-[10px] text-gray-400 font-mono">EN</span>
+                        </button>
+                        <button onclick="setDashLanguage('Tamil')"
+                            class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-200 hover:bg-brand-500/20 hover:text-white flex items-center justify-between transition cursor-pointer">
+                            <span>🇮🇳 தமிழ்</span>
+                            <span class="text-[10px] text-brand-300 font-semibold">Tamil</span>
+                        </button>
+                        <button onclick="setDashLanguage('Telugu')"
+                            class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-200 hover:bg-brand-500/20 hover:text-white flex items-center justify-between transition cursor-pointer">
+                            <span>🇮🇳 తెలుగు</span>
+                            <span class="text-[10px] text-brand-300 font-semibold">Telugu</span>
+                        </button>
+                        <button onclick="setDashLanguage('Bengali')"
+                            class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-200 hover:bg-brand-500/20 hover:text-white flex items-center justify-between transition cursor-pointer">
+                            <span>🇮🇳 বাংলা</span>
+                            <span class="text-[10px] text-brand-300 font-semibold">Bengali</span>
+                        </button>
+                        <button onclick="setDashLanguage('Hindi')"
+                            class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-200 hover:bg-brand-500/20 hover:text-white flex items-center justify-between transition cursor-pointer">
+                            <span>🇮🇳 हिंदी</span>
+                            <span class="text-[10px] text-brand-300 font-semibold">Hindi</span>
+                        </button>
+                        <button onclick="setDashLanguage('Marathi')"
+                            class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-200 hover:bg-brand-500/20 hover:text-white flex items-center justify-between transition cursor-pointer">
+                            <span>🇮🇳 मराठी</span>
+                            <span class="text-[10px] text-brand-300 font-semibold">Marathi</span>
+                        </button>
+                    </div>
+                </div>
+
+                <button onclick="stopAllDashSpeech()" id="dash-voice-stop-btn"
+                    class="hidden text-[10px] bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded-md font-semibold transition flex items-center space-x-1 cursor-pointer">
+                    <i data-lucide="square" class="w-2.5 h-2.5 fill-current"></i>
+                    <span>Stop</span>
+                </button>
+            </div>
+        </div>
+        <!-- Live Audio Frequency / Waveform Chart Canvas -->
+        <div
+            class="relative w-full h-12 rounded-xl overflow-hidden bg-dark-950/90 border border-white/10 p-1 flex flex-col justify-between shadow-inner">
+            <canvas id="dash-voice-chart-canvas" width="380" height="42"
+                class="w-full h-full block rounded-lg"></canvas>
+            <div
+                class="flex items-center justify-between px-1.5 pb-0.5 text-[8px] font-mono text-gray-500 border-t border-white/5 pointer-events-none select-none">
+                <span>60Hz</span>
+                <span>250Hz</span>
+                <span>1kHz</span>
+                <span>4kHz</span>
+                <span>16kHz</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat History -->
+    <div class="flex-grow overflow-y-auto space-y-3 pr-1 text-sm leading-relaxed" id="dash-chat-history">
+        <div class="bg-white/5 border border-white/5 rounded-2xl p-4 text-gray-300 text-xs space-y-1.5">
+            <div class="flex items-center space-x-2 text-brand-400 font-semibold mb-1">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                <span>Diva AI Mentor</span>
+            </div>
+            <p>Hello <strong>{{ current_user.name or 'Learner' }}</strong>! I am <strong>Diva</strong>, your personal AI
+                computer science mentor. You can speak to me directly using the <strong>Microphone (🎙️)</strong> button
+                or type below. Ask me what to study next, get help on tricky topics, or ask any coding questions!</p>
+        </div>
+    </div>
+
+    <!-- Quick Action Prompts -->
+    <div class="grid grid-cols-2 gap-1.5 flex-shrink-0">
+        <button onclick="sendDashQuickAction('What should I learn next based on my current progress?')"
+            class="glass hover:bg-white/10 text-[11px] font-medium text-gray-300 py-1.5 px-2 rounded-lg truncate text-left transition flex items-center gap-1.5">
+            <span>🚀 What next?</span>
+        </button>
+        <button onclick="sendDashQuickAction('Can you summarize my active learning roadmap and milestones?')"
+            class="glass hover:bg-white/10 text-[11px] font-medium text-gray-300 py-1.5 px-2 rounded-lg truncate text-left transition flex items-center gap-1.5">
+            <span>🗺️ My Roadmap</span>
+        </button>
+        <button onclick="sendDashQuickAction('Give me a quick practical coding challenge to test my skills.')"
+            class="glass hover:bg-white/10 text-[11px] font-medium text-gray-300 py-1.5 px-2 rounded-lg truncate text-left transition flex items-center gap-1.5">
+            <span>💡 Quick Challenge</span>
+        </button>
+        <button onclick="sendDashQuickAction('Explain a key computer science concept with a simple intuitive analogy.')"
+            class="glass hover:bg-white/10 text-[11px] font-medium text-gray-300 py-1.5 px-2 rounded-lg truncate text-left transition flex items-center gap-1.5">
+            <span>🧠 Explain Concept</span>
+        </button>
+    </div>
+
+    <!-- Chat Input Form with Voice Mic -->
+    <form id="dash-chat-form" onsubmit="handleDashChatSubmit(event); return false;"
+        class="relative flex items-center gap-2 flex-shrink-0 pt-1">
+        <button type="button" onclick="toggleDashVoiceRecording()" id="dash-mic-btn"
+            class="w-10 h-10 rounded-xl bg-dark-900 border border-brand-500/30 hover:border-brand-400 text-brand-400 flex items-center justify-center transition hover:bg-brand-500/10 flex-shrink-0 cursor-pointer"
+            title="Click to Speak (Speech-to-Text)">
+            <i data-lucide="mic" class="w-5 h-5 pointer-events-none" id="dash-mic-icon"></i>
+        </button>
+        <div class="relative flex-grow">
+            <input type="text" id="dash-chat-input"
+                onkeydown="if(event.key==='Enter'){event.preventDefault();handleDashChatSubmit(event);}"
+                placeholder="Ask Diva anything or tap 🎙️..."
+                class="w-full bg-dark-900 border border-white/10 rounded-xl pl-3 pr-10 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand-500 transition">
+            <button type="button" onclick="handleDashChatSubmit(event)" id="dash-send-btn"
+                class="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg bg-brand-600 hover:bg-brand-500 text-white flex items-center justify-center transition cursor-pointer active:scale-95 shadow-sm shadow-brand-500/30"
+                title="Send Message">
+                <i data-lucide="arrow-up" class="w-3.5 h-3.5 pointer-events-none"></i>
+            </button>
+        </div>
+    </form>
+</aside>
+
+<script>
+    if (typeof window.safeCreateIcons !== 'function') {
+        window.safeCreateIcons = function () {
+            try {
+                if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+            } catch (e) { }
+        };
+    }
+
+    // Notes Upload
+    window.handleNotesUpload = function (input) {
+        if (!input.files || input.files.length === 0) return;
+        const file = input.files[0];
+        const formData = new FormData();
+        formData.append('file', file);
+        {% if active_path %}
+        formData.append('learning_path_id', '{{ active_path.id }}');
+        {% endif %}
+
+        const btn = document.querySelector('button[onclick*="notes-upload"] span');
+        const origText = btn ? btn.innerText : '';
+        if (btn) btn.innerText = 'Processing...';
+
+        fetch('{{ url_for("learning.upload_notes") }}', {
+            method: 'POST',
+            body: formData
+        }).then(res => res.json()).then(data => {
+            if (data.success) {
+                alert('Notes uploaded and processed successfully! Your AI Tutor will now reference them.');
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
+            }
+        }).catch(err => {
+            alert('Upload failed.');
+            console.error(err);
+        }).finally(() => {
+            if (btn) btn.innerText = origText;
+            input.value = '';
+        });
+    };
+
+    // ========================================================
+    // DASHBOARD DIVA AI TUTOR & VOICE ENGINE
+    // ========================================================
+    let dashTutorOpen = false;
+    let dashTTSEnabled = true;
+    let dashAudioCtx = null;
+    let dashAnalyser = null;
+    let dashMicStream = null;
+    let dashAnimFrame = null;
+    let dashIsRecording = false;
+    let dashSpeechRec = null;
+
+    // Toggle Drawer
+    window.toggleDashboardTutor = function (forceOpen = null) {
+        const drawer = document.getElementById('dashboard-tutor-drawer');
+        const fab = document.getElementById('dashboard-floating-actions');
+        const backdrop = document.getElementById('dash-tutor-backdrop');
+        if (forceOpen !== null) {
+            dashTutorOpen = forceOpen;
+        } else {
+            dashTutorOpen = !dashTutorOpen;
+        }
+        if (dashTutorOpen) {
+            if (drawer) drawer.classList.remove('translate-x-full');
+            if (fab) fab.classList.add('opacity-0', 'pointer-events-none');
+            if (backdrop) backdrop.classList.remove('hidden');
+            initDashVisualizer();
+            setTimeout(() => {
+                const input = document.getElementById('dash-chat-input');
+                if (input) input.focus();
+            }, 300);
+        } else {
+            if (drawer) drawer.classList.add('translate-x-full');
+            if (fab) fab.classList.remove('opacity-0', 'pointer-events-none');
+            if (backdrop) backdrop.classList.add('hidden');
+            stopAllDashSpeech();
+            stopDashMic();
+        }
+    };
+
+    window.toggleDashTTS = function () {
+        dashTTSEnabled = !dashTTSEnabled;
+        const icon = document.getElementById('dash-tts-icon');
+        const btn = document.getElementById('dash-tts-toggle');
+        if (dashTTSEnabled) {
+            btn.classList.add('text-brand-400', 'bg-brand-500/10');
+            btn.classList.remove('text-gray-400', 'bg-white/5');
+            btn.title = "Voice Read Aloud (Enabled)";
+            icon.setAttribute('data-lucide', 'volume-2');
+        } else {
+            btn.classList.remove('text-brand-400', 'bg-brand-500/10');
+            btn.classList.add('text-gray-400', 'bg-white/5');
+            btn.title = "Voice Read Aloud (Muted)";
+            icon.setAttribute('data-lucide', 'volume-x');
+            stopAllDashSpeech();
+        }
+        safeCreateIcons();
+    };
+
+    window.toggleDashChartPanel = function () {
+        const panel = document.getElementById('dash-voice-chart-panel');
+        panel.classList.toggle('hidden');
+    };
+
+    window.stopAllDashSpeech = function () {
+        if ('speechSynthesis' in window) {
+            try { window.speechSynthesis.cancel(); } catch (e) { }
+        }
+        const stopBtn = document.getElementById('dash-voice-stop-btn');
+        if (stopBtn) stopBtn.classList.add('hidden');
+        setDashVoiceStatus('idle', 'Voice Active • Ready');
+    };
+
+    function setDashVoiceStatus(state, message) {
+        const ping = document.getElementById('dash-voice-status-ping');
+        const dot = document.getElementById('dash-voice-status-dot');
+        const text = document.getElementById('dash-voice-status-text');
+        const indicator = document.getElementById('dash-voice-mode-badge') || document.getElementById('dash-voice-mode-indicator');
+
+        if (text) text.innerText = message;
+        if (state === 'recording') {
+            if (ping) ping.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75";
+            if (dot) dot.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500 shadow-sm shadow-rose-400";
+            if (indicator) {
+                indicator.innerText = "MIC RECORDING";
+                indicator.className = "text-[9px] font-mono font-medium px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 animate-pulse";
+            }
+        } else if (state === 'speaking') {
+            if (ping) ping.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75";
+            if (dot) dot.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 shadow-sm shadow-emerald-400";
+            if (indicator) {
+                indicator.innerText = "DIVA SPEAKING";
+                indicator.className = "text-[9px] font-mono font-medium px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 animate-pulse";
+            }
+        } else if (state === 'analyzing') {
+            if (ping) ping.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75";
+            if (dot) dot.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500 shadow-sm shadow-indigo-400";
+            if (indicator) {
+                indicator.innerText = "ANALYZING";
+                indicator.className = "text-[9px] font-mono font-medium px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30";
+            }
+        } else {
+            if (ping) ping.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75";
+            if (dot) dot.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-500 shadow-sm shadow-brand-400";
+            if (indicator) {
+                indicator.innerText = "VOICE READY";
+                indicator.className = "text-[9px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30 px-1.5 py-0.5 rounded-full uppercase tracking-wider";
+            }
+        }
+    }
+
+    // Initialize Canvas Equalizer Visualizer
+    function initDashVisualizer() {
+        const canvas = document.getElementById('dash-voice-chart-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const numBars = 36;
+        let phase = 0;
+
+        if (dashAnimFrame) cancelAnimationFrame(dashAnimFrame);
+
+        function renderSpectrum() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            phase += 0.08;
+
+            const barWidth = (canvas.width / numBars) - 2;
+            let freqData = null;
+            if (dashAnalyser && dashIsRecording) {
+                freqData = new Uint8Array(dashAnalyser.frequencyBinCount);
+                dashAnalyser.getByteFrequencyData(freqData);
+            }
+
+            for (let i = 0; i < numBars; i++) {
+                let barHeight = 4;
+                if (freqData) {
+                    const binIdx = Math.floor(i * (freqData.length / numBars));
+                    const val = freqData[binIdx] || 0;
+                    barHeight = Math.max(3, (val / 255) * (canvas.height - 4));
+                } else if (window.speechSynthesis && window.speechSynthesis.speaking) {
+                    const wave = Math.sin(phase * 1.5 + i * 0.35) * Math.cos(phase * 0.7 + i * 0.2);
+                    barHeight = Math.max(4, Math.abs(wave) * (canvas.height - 6) + 4);
+                } else {
+                    const wave = Math.sin(phase * 0.6 + i * 0.25);
+                    barHeight = Math.max(3, (wave * 0.5 + 0.5) * 8 + 3);
+                }
+
+                const x = i * (barWidth + 2);
+                const y = canvas.height - barHeight;
+
+                const gradient = ctx.createLinearGradient(0, y, 0, canvas.height);
+                if (dashIsRecording) {
+                    gradient.addColorStop(0, '#f43f5e');
+                    gradient.addColorStop(1, '#be123c');
+                } else if (window.speechSynthesis && window.speechSynthesis.speaking) {
+                    gradient.addColorStop(0, '#10b981');
+                    gradient.addColorStop(1, '#047857');
+                } else {
+                    gradient.addColorStop(0, '#818cf8');
+                    gradient.addColorStop(1, '#4f46e5');
+                }
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.roundRect(x, y, barWidth, barHeight, [2, 2, 0, 0]);
+                ctx.fill();
+            }
+
+            dashAnimFrame = requestAnimationFrame(renderSpectrum);
+        }
+
+        renderSpectrum();
+    }
+
+    // Microphone Recording (STT)
+    window.toggleDashVoiceRecording = function () {
+        if (dashIsRecording) {
+            stopDashMic();
+        } else {
+            startDashMic();
+        }
+    };
+
+    function startDashMic() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert("Voice recognition is not supported in this browser. Please use Chrome, Edge, or Safari.");
+            return;
+        }
+
+        // Detect user preferred language
+        const cookies = document.cookie.split(';');
+        let prefLang = 'English';
+        for (let c of cookies) {
+            let [k, v] = c.trim().split('=');
+            if (k === 'preferred_language') prefLang = decodeURIComponent(v);
+        }
+        const langMap = {
+            'Tamil': 'ta-IN',
+            'Hindi': 'hi-IN',
+            'Telugu': 'te-IN',
+            'Marathi': 'mr-IN',
+            'Bengali': 'bn-IN',
+            'English': 'en-US'
+        };
+
+        dashSpeechRec = new SpeechRecognition();
+        dashSpeechRec.continuous = false;
+        dashSpeechRec.interimResults = true;
+        dashSpeechRec.lang = langMap[prefLang] || 'en-US';
+
+        const micBtn = document.getElementById('dash-mic-btn');
+        const input = document.getElementById('dash-chat-input');
+
+        dashSpeechRec.onstart = function () {
+            dashIsRecording = true;
+            micBtn.classList.add('bg-rose-600', 'text-white', 'border-rose-400', 'animate-pulse');
+            micBtn.classList.remove('bg-dark-900', 'text-brand-400');
+            setDashVoiceStatus('recording', 'Listening... (Microphone Active)');
+
+            // Connect Web Audio API Analyser
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                    dashMicStream = stream;
+                    dashAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    dashAnalyser = dashAudioCtx.createAnalyser();
+                    dashAnalyser.fftSize = 128;
+                    const src = dashAudioCtx.createMediaStreamSource(stream);
+                    src.connect(dashAnalyser);
+                }).catch(e => console.warn("AudioContext mic warning:", e));
+            }
+        };
+
+        dashSpeechRec.onresult = function (event) {
+            let interim = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    input.value = event.results[i][0].transcript;
+                    stopDashMic();
+                    handleDashChatSubmit(new Event('submit'));
+                    return;
+                } else {
+                    interim += event.results[i][0].transcript;
+                }
+            }
+            if (interim) input.value = interim;
+        };
+
+        dashSpeechRec.onerror = function (event) {
+            console.error("Speech rec error:", event.error);
+            stopDashMic();
+        };
+
+        dashSpeechRec.onend = function () {
+            stopDashMic();
+        };
+
+        dashSpeechRec.start();
+    }
+
+    function stopDashMic() {
+        dashIsRecording = false;
+        if (dashSpeechRec) {
+            try { dashSpeechRec.stop(); } catch (e) { }
+            dashSpeechRec = null;
+        }
+        if (dashMicStream) {
+            dashMicStream.getTracks().forEach(t => t.stop());
+            dashMicStream = null;
+        }
+        if (dashAudioCtx) {
+            dashAudioCtx.close();
+            dashAudioCtx = null;
+            dashAnalyser = null;
+        }
+        const micBtn = document.getElementById('dash-mic-btn');
+        if (micBtn) {
+            micBtn.classList.remove('bg-rose-600', 'text-white', 'border-rose-400', 'animate-pulse');
+            micBtn.classList.add('bg-dark-900', 'text-brand-400');
+        }
+        setDashVoiceStatus('idle', 'Voice Active • Ready');
+    }
+
+    // ── Supported Indian & Global Languages Configuration for Dashboard ──
+    const DASH_LANG_CONFIG = {
+        'English': { code: 'en-US', label: 'English', flag: '🇬🇧', script: 'English', prefixes: ['en'], names: ['Natural', 'Jenny', 'Samantha', 'Google UK English Female', 'Victoria', 'en-US', 'en-IN'] },
+        'Tamil': { code: 'ta-IN', label: 'தமிழ்', flag: '🇮🇳', script: 'தமிழ் (Tamil)', prefixes: ['ta'], names: ['tamil', 'தமிழ்', 'ta-in', 'valluvar', 'iniya'] },
+        'Telugu': { code: 'te-IN', label: 'తెలుగు', flag: '🇮🇳', script: 'తెలుగు (Telugu)', prefixes: ['te'], names: ['telugu', 'తెలుగు', 'te-in', 'mohan', 'shruti'] },
+        'Bengali': { code: 'bn-IN', label: 'বাংলা', flag: '🇮🇳', script: 'বাংলা (Bengali)', prefixes: ['bn'], names: ['bengali', 'bangla', 'বাংলা', 'bn-in', 'bn-bd', 'tanishaa'] },
+        'Marathi': { code: 'mr-IN', label: 'मराठी', flag: '🇮🇳', script: 'मराठी (Marathi)', prefixes: ['mr'], names: ['marathi', 'मराठी', 'mr-in', 'aarohi'] },
+        'Hindi': { code: 'hi-IN', label: 'हिंदी', flag: '🇮🇳', script: 'हिंदी (Hindi)', prefixes: ['hi'], names: ['hindi', 'हिंदी', 'hi-in', 'madhur', 'swara'] }
+    };
+
+    function getDashActiveLanguage() {
+        const cookies = document.cookie.split(';');
+        for (let c of cookies) {
+            let [k, v] = c.trim().split('=');
+            if (k === 'preferred_language') {
+                const dec = decodeURIComponent(v);
+                if (DASH_LANG_CONFIG[dec]) return dec;
+                for (let langKey in DASH_LANG_CONFIG) {
+                    if (langKey.toLowerCase() === dec.toLowerCase()) return langKey;
+                }
+            }
+        }
+        return 'English';
+    }
+
+    function toggleDashLanguageMenu() {
+        const menu = document.getElementById('dash-lang-menu');
+        if (menu) menu.classList.toggle('hidden');
+    }
+
+    function setDashLanguage(lang) {
+        const menu = document.getElementById('dash-lang-menu');
+        if (menu) menu.classList.add('hidden');
+        document.cookie = "preferred_language=" + encodeURIComponent(lang) + "; path=/; max-age=31536000";
+        updateDashLanguageUI(lang);
+    }
+
+    function updateDashLanguageUI(langName) {
+        const cfg = DASH_LANG_CONFIG[langName] || DASH_LANG_CONFIG['English'];
+        const flagEl = document.getElementById('dash-lang-flag');
+        const nameEl = document.getElementById('dash-lang-name');
+        if (flagEl) flagEl.innerText = cfg.flag || '🇮🇳';
+        if (nameEl) nameEl.innerText = cfg.label || langName;
+        DashDivaVoice.activeLanguage = langName;
+    }
+
+    // Close menu on click outside
+    document.addEventListener('click', (e) => {
+        const menu = document.getElementById('dash-lang-menu');
+        const btn = document.getElementById('dash-lang-badge-btn');
+        if (menu && !menu.classList.contains('hidden') && btn && !btn.contains(e.target) && !menu.contains(e.target)) {
+            menu.classList.add('hidden');
+        }
+    });
+
+    function findDashBestVoice(langName, voices) {
+        if (!voices) voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+        if (!voices || voices.length === 0) return null;
+        const cfg = DASH_LANG_CONFIG[langName] || DASH_LANG_CONFIG['English'];
+
+        for (let nameKw of cfg.names) {
+            const found = voices.find(v => v.name.toLowerCase().includes(nameKw.toLowerCase()));
+            if (found) return found;
+        }
+        for (let p of cfg.prefixes) {
+            const found = voices.find(v => v.lang.toLowerCase().startsWith(p.toLowerCase()));
+            if (found) return found;
+        }
+        return voices.find(v => v.lang.toLowerCase().includes('en-in')) ||
+            voices.find(v => v.lang.toLowerCase().startsWith('en')) ||
+            voices[0];
+    }
+
+    // ── Singleton Multi-Lingual Diva Voice Controller for Dashboard ──
+    const DashDivaVoice = {
+        audio: null,
+        generationId: 0,
+        isPlaying: false,
+        activePlayingMsgId: null,
+        queue: [],
+        currentIndex: 0,
+        activeLanguage: 'English',
+        rate: 1.0,
+
+        stop() {
+            this.generationId++;
+            this.isPlaying = false;
+
+            // Reset active message button state
+            if (this.activePlayingMsgId) {
+                this.updateMessageButtonUI(this.activePlayingMsgId, false);
+                this.activePlayingMsgId = null;
+            }
+            document.querySelectorAll('[id^="dash-listen-text-"]').forEach(el => el.innerText = "Listen");
+            document.querySelectorAll('[id^="dash-listen-icon-"]').forEach(el => el.setAttribute('data-lucide', 'volume-2'));
+            document.querySelectorAll('[id^="dash-listen-btn-"]').forEach(el => el.className = "text-gray-400 hover:text-brand-300 flex items-center space-x-1 transition cursor-pointer px-2 py-0.5 rounded-md hover:bg-white/5");
+
+            this.queue = [];
+            this.currentIndex = 0;
+
+            if (this.audio) {
+                this.audio.onended = null;
+                this.audio.onerror = null;
+                this.audio.oncanplay = null;
+                try {
+                    this.audio.pause();
+                    this.audio.src = '';
+                } catch (e) { }
+                this.audio = null;
+            }
+
+            if ('speechSynthesis' in window) {
+                try { window.speechSynthesis.cancel(); } catch (e) { }
+            }
+
+            setDashVoiceStatus('idle', 'Voice Active • Ready');
+            const stopBtn = document.getElementById('dash-voice-stop-btn');
+            if (stopBtn) stopBtn.classList.add('hidden');
+            safeCreateIcons();
+        },
+
+        speakText(text, lang = null, msgId = null, onDone = null) {
+            this.stop();
+            const clean = text.replace(/[#*`_\[\]\(\)>-]/g, ' ').replace(/\s+/g, ' ').trim();
+            if (!clean) return;
+
+            const gen = this.generationId;
+            const targetLang = lang || getDashActiveLanguage();
+            this.activeLanguage = targetLang;
+            this.activePlayingMsgId = msgId;
+
+            // Split into sentences
+            const rawChunks = clean.split(/(?<=[.?!।\n;])\s+/);
+            this.queue = [];
+            for (let c of rawChunks) {
+                const s = c.trim();
+                if (s && s.length > 1) this.queue.push(s);
+            }
+            if (this.queue.length === 0) this.queue.push(clean);
+
+            this.currentIndex = 0;
+            this.isPlaying = true;
+
+            if (msgId) {
+                this.updateMessageButtonUI(msgId, true);
+            }
+
+            const cfg = DASH_LANG_CONFIG[targetLang] || DASH_LANG_CONFIG['English'];
+            setDashVoiceStatus('speaking', `Diva Speaking in ${cfg.label} (Voice Active)`);
+            const stopBtn = document.getElementById('dash-voice-stop-btn');
+            if (stopBtn) stopBtn.classList.remove('hidden');
+
+            this.playNextChunk(gen, onDone);
+        },
+
+        updateMessageButtonUI(msgId, isPlaying) {
+            const btn = document.getElementById(`dash-listen-btn-${msgId}`);
+            const icon = document.getElementById(`dash-listen-icon-${msgId}`);
+            const text = document.getElementById(`dash-listen-text-${msgId}`);
+            if (!btn) return;
+            if (isPlaying) {
+                btn.className = "text-rose-300 bg-rose-500/20 border border-rose-500/30 flex items-center space-x-1 transition cursor-pointer px-2 py-0.5 rounded-md font-semibold";
+                if (icon) icon.setAttribute('data-lucide', 'square');
+                if (text) text.innerText = "Stop";
+            } else {
+                btn.className = "text-gray-400 hover:text-brand-300 flex items-center space-x-1 transition cursor-pointer px-2 py-0.5 rounded-md hover:bg-white/5";
+                if (icon) icon.setAttribute('data-lucide', 'volume-2');
+                if (text) text.innerText = "Listen";
+            }
+            safeCreateIcons();
+        },
+
+        playNextChunk(gen, onDone) {
+            if (gen !== this.generationId || !this.isPlaying) return;
+
+            if (this.currentIndex >= this.queue.length) {
+                this.stop();
+                if (onDone) onDone();
+                return;
+            }
+
+            const sentence = this.queue[this.currentIndex];
+            const lang = this.activeLanguage;
+            const cfg = DASH_LANG_CONFIG[lang] || DASH_LANG_CONFIG['English'];
+
+            const encodedText = encodeURIComponent(sentence);
+            const encodedLang = encodeURIComponent(lang);
+            const streamUrl = `/learning/voice/tts?lang=${encodedLang}&text=${encodedText}`;
+
+            const audio = new Audio();
+            audio.src = streamUrl;
+            audio.playbackRate = this.rate || 1.0;
+            this.audio = audio;
+
+            let hasHandled = false;
+            const advance = () => {
+                if (hasHandled) return;
+                hasHandled = true;
+                if (gen !== this.generationId) return;
+                this.currentIndex++;
+                this.playNextChunk(gen, onDone);
+            };
+
+            const fallback = (err) => {
+                if (hasHandled) return;
+                hasHandled = true;
+                if (gen !== this.generationId) return;
+                this.speakFallbackUtterance(sentence, lang, gen, advance);
+            };
+
+            audio.onended = advance;
+            audio.onerror = fallback;
+
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(fallback);
+            }
+        },
+
+        speakFallbackUtterance(sentence, lang, gen, callback) {
+            if (gen !== this.generationId || !('speechSynthesis' in window)) {
+                callback();
+                return;
+            }
+            const cfg = DASH_LANG_CONFIG[lang] || DASH_LANG_CONFIG['English'];
+            const utt = new SpeechSynthesisUtterance(sentence);
+            utt.lang = cfg.code;
+            const voices = window.speechSynthesis.getVoices();
+            const voice = findDashBestVoice(lang, voices);
+            if (voice) utt.voice = voice;
+            utt.rate = this.rate || 1.0;
+            utt.pitch = 1.05;
+
+            let handled = false;
+            const next = () => {
+                if (handled) return;
+                handled = true;
+                if (gen !== this.generationId) return;
+                callback();
+            };
+
+            utt.onend = next;
+            utt.onerror = next;
+            window.speechSynthesis.speak(utt);
+        }
+    };
+
+    function stopAllDashSpeech() {
+        DashDivaVoice.stop();
+    }
+
+    function toggleDashListenMessage(msgId, text, lang) {
+        if (DashDivaVoice.activePlayingMsgId === msgId && DashDivaVoice.isPlaying) {
+            DashDivaVoice.stop();
+        } else {
+            DashDivaVoice.speakText(text, lang, msgId);
+        }
+    }
+
+    function speakDashReply(text, lang = null, msgId = null) {
+        if (!dashTTSEnabled) return;
+        DashDivaVoice.speakText(text, lang, msgId);
+    }
+
+    // Send Quick Action Chip
+    window.sendDashQuickAction = function (text) {
+        const input = document.getElementById('dash-chat-input');
+        if (input) input.value = text;
+        handleDashChatSubmit();
+    };
+
+    // Handle Chat Submit
+    window.handleDashChatSubmit = function (e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        const input = document.getElementById('dash-chat-input');
+        if (!input) return;
+        const msg = input.value.trim();
+        if (!msg) return;
+
+        // Immediately stop any currently playing voice when asking a new question
+        stopAllDashSpeech();
+
+        input.value = '';
+        appendDashMessage('user', msg);
+        setDashVoiceStatus('analyzing', 'Diva is thinking...');
+
+        const history = document.getElementById('dash-chat-history');
+        const loadingId = 'dash-loading-' + Date.now();
+        if (history) {
+            history.innerHTML += `
+                <div id="${loadingId}" class="flex items-center space-x-2 text-gray-400 text-xs py-2">
+                    <i data-lucide="loader-2" class="w-4 h-4 animate-spin text-brand-400"></i>
+                    <span>Diva is thinking...</span>
+                </div>
+            `;
+            safeCreateIcons();
+            history.scrollTop = history.scrollHeight;
+        }
+
+        const activePathId = {{ (active_path.id | tojson) if active_path and active_path.id else 'null'
+    }};
+    const payload = {
+        message: msg,
+        learningPathId: activePathId,
+        language: getDashActiveLanguage()
+    };
+
+    fetch('/tutor/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+        .then(res => {
+            if (!res.ok) {
+                return res.json().catch(() => ({})).then(errData => {
+                    throw new Error(errData.error || `Server responded with status ${res.status}`);
+                });
+            }
+            return res.json();
+        })
+        .then(data => {
+            const loadEl = document.getElementById(loadingId);
+            if (loadEl) loadEl.remove();
+
+            if (data && data.reply) {
+                const targetLang = data.language || getDashActiveLanguage();
+                updateDashLanguageUI(targetLang);
+                const msgId = `dash-msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+                appendDashMessage('diva', data.reply, targetLang, msgId);
+                if (dashTTSEnabled) {
+                    DashDivaVoice.speakText(data.reply, targetLang, msgId);
+                }
+            } else {
+                appendDashMessage('diva', (data && data.error) ? data.error : 'Sorry, I encountered an issue. Please try again.');
+            }
+        })
+        .catch(err => {
+            const loadEl = document.getElementById(loadingId);
+            if (loadEl) loadEl.remove();
+            appendDashMessage('diva', err.message || 'Connection error. Please try again in a moment.');
+        })
+        .finally(() => {
+            if (!DashDivaVoice.isPlaying) {
+                setDashVoiceStatus('idle', 'Voice Active • Ready');
+            }
+        });
+    };
+
+    function appendDashMessage(sender, text, lang = null, explicitMsgId = null) {
+        const history = document.getElementById('dash-chat-history');
+        const isUser = sender === 'user';
+        const msgId = explicitMsgId || `dash-msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        const formatted = isUser ? text.replace(/</g, "&lt;").replace(/>/g, "&gt;") : (window.marked ? marked.parse(text) : text);
+        const effectiveLang = lang || getDashActiveLanguage();
+
+        let audioBtnHtml = '';
+        if (!isUser) {
+            const cleanText = text.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
+            const cfg = DASH_LANG_CONFIG[effectiveLang] || DASH_LANG_CONFIG['English'];
+            audioBtnHtml = `
+                <div class="flex items-center justify-between pt-2 mt-2 border-t border-white/5 text-[11px]">
+                    <span class="text-brand-400 font-medium flex items-center gap-1">
+                        <i data-lucide="sparkles" class="w-3 h-3"></i> Diva AI (${cfg.label})
+                    </span>
+                    <button id="dash-listen-btn-${msgId}" onclick="toggleDashListenMessage('${msgId}', '${cleanText}', '${effectiveLang}')" class="text-gray-400 hover:text-brand-300 flex items-center space-x-1 transition cursor-pointer px-2 py-0.5 rounded-md hover:bg-white/5" title="Listen / Stop this explanation">
+                        <i data-lucide="volume-2" class="w-3.5 h-3.5" id="dash-listen-icon-${msgId}"></i>
+                        <span id="dash-listen-text-${msgId}">Listen</span>
+                    </button>
+                </div>
+            `;
+        }
+
+        history.innerHTML += `
+            <div id="${msgId}" class="${isUser ? 'bg-brand-600/20 border border-brand-500/30 text-white ml-6' : 'bg-white/5 border border-white/5 text-gray-300 mr-2 max-w-full overflow-hidden break-words'} rounded-2xl p-3.5 text-xs space-y-1 shadow">
+                <div class="flex items-center space-x-1.5 ${isUser ? 'text-brand-300 justify-end' : 'text-brand-400'} font-semibold mb-1">
+                    <i data-lucide="${isUser ? 'user' : 'sparkles'}" class="w-3.5 h-3.5"></i>
+                    <span>${isUser ? 'You' : 'Diva AI'}</span>
+                </div>
+                <div class="prose prose-invert prose-xs max-w-none leading-relaxed overflow-x-auto">${formatted}</div>
+                ${audioBtnHtml}
+            </div>
+        `;
+        safeCreateIcons();
+        history.scrollTop = history.scrollHeight;
+
+        if (!isUser && typeof mermaid !== 'undefined') {
+            setTimeout(() => {
+                const nodes = document.querySelectorAll(`#${msgId} .mermaid`);
+                if (nodes.length > 0) {
+                    mermaid.run({ nodes: nodes }).catch(e => console.warn(e));
+                }
+            }, 60);
+        }
+    }
+
+    // Switch Mastery Profile Tabs
+    window.switchMasteryTab = function (tab) {
+        const radarTab = document.getElementById('mastery-tab-radar');
+        const skillsTab = document.getElementById('mastery-tab-skills');
+        const insightsTab = document.getElementById('mastery-tab-insights');
+
+        const btnRadar = document.getElementById('tab-btn-radar');
+        const btnSkills = document.getElementById('tab-btn-skills');
+        const btnInsights = document.getElementById('tab-btn-insights');
+
+        [radarTab, skillsTab, insightsTab].forEach(t => {
+            if (t) t.classList.add('hidden');
+        });
+        [btnRadar, btnSkills, btnInsights].forEach(b => {
+            if (b) {
+                b.classList.remove('bg-brand-600', 'text-white', 'shadow-sm');
+                b.classList.add('text-gray-400');
+            }
+        });
+
+        if (tab === 'radar') {
+            if (radarTab) radarTab.classList.remove('hidden');
+            if (btnRadar) {
+                btnRadar.classList.add('bg-brand-600', 'text-white', 'shadow-sm');
+                btnRadar.classList.remove('text-gray-400');
+            }
+        } else if (tab === 'skills') {
+            if (skillsTab) skillsTab.classList.remove('hidden');
+            if (btnSkills) {
+                btnSkills.classList.add('bg-brand-600', 'text-white', 'shadow-sm');
+                btnSkills.classList.remove('text-gray-400');
+            }
+        } else if (tab === 'insights') {
+            if (insightsTab) insightsTab.classList.remove('hidden');
+            if (btnInsights) {
+                btnInsights.classList.add('bg-brand-600', 'text-white', 'shadow-sm');
+                btnInsights.classList.remove('text-gray-400');
+            }
+        }
+    };
+
+    let masteryChartInstance = null;
+
+    // Dashboard Analytics Data Loader
+    document.addEventListener("DOMContentLoaded", function () {
+        {% if active_path %}
+        fetch('/analytics/dashboard-data')
+            .then(res => res.json())
+            .then(data => {
+                // Populate Stats
+                if (data.user) {
+                    document.getElementById('stat-xp').innerText = (data.user.totalXP || 0) + " XP";
+                    document.getElementById('stat-streak').innerText = (data.user.streakDays || 0) + " Days";
+                }
+
+                if (data.activePath) {
+                    document.getElementById('stat-completion').innerText = data.activePath.completedLessonsCount + " / " + data.activePath.totalLessonsCount;
+                    document.getElementById('path-domain').innerText = data.activePath.domain;
+                    document.getElementById('path-level').innerText = data.activePath.initialLevel;
+
+                    const pct = data.activePath.progressPercentage;
+                    document.getElementById('progress-pct-txt').innerText = pct + "%";
+                    document.getElementById('progress-bar-fill').style.width = pct + "%";
+                }
+
+                // Badges
+                const badgeContainer = document.getElementById('badge-list');
+                if (badgeContainer) {
+                    badgeContainer.innerHTML = '';
+                    if (!data.user.badges || data.user.badges.length === 0) {
+                        badgeContainer.innerHTML = '<span class="text-gray-500 text-sm">No badges earned yet. Complete lessons to unlock badges!</span>';
+                    } else {
+                        data.user.badges.forEach(b => {
+                            badgeContainer.innerHTML += `
+                                <div class="flex items-center space-x-2 bg-gradient-to-tr from-brand-600/20 to-indigo-600/20 border border-brand-500/30 px-4 py-2 rounded-xl">
+                                    <i data-lucide="award" class="w-5 h-5 text-brand-400"></i>
+                                    <span class="text-sm font-semibold text-gray-200">${b}</span>
+                                </div>
+                            `;
+                        });
+                    }
+                }
+
+                // Populate Mastery Profile Header & Stats
+                if (data.masteryProfile) {
+                    const mp = data.masteryProfile;
+                    const overallEl = document.getElementById('overall-mastery-score');
+                    if (overallEl) overallEl.innerText = mp.overallScore + "%";
+
+                    const iconEl = document.getElementById('mastery-badge-icon');
+                    if (iconEl) iconEl.innerText = mp.badge || "🎯";
+
+                    const gradeEl = document.getElementById('mastery-grade-text');
+                    if (gradeEl) gradeEl.innerText = mp.grade || "Evaluating";
+
+                    const elM = document.getElementById('stat-mastered-count');
+                    if (elM) elM.innerText = mp.masteredCount || 0;
+
+                    const elP = document.getElementById('stat-proficient-count');
+                    if (elP) elP.innerText = mp.proficientCount || 0;
+
+                    const elD = document.getElementById('stat-developing-count');
+                    if (elD) elD.innerText = mp.developingCount || 0;
+
+                    const elF = document.getElementById('stat-needs-focus-count');
+                    if (elF) elF.innerText = mp.needsReviewCount || 0;
+
+                    // Populate Insights
+                    const strEl = document.getElementById('insight-top-strength');
+                    if (strEl) strEl.innerText = mp.topStrength || "Beginning Journey";
+
+                    const grwEl = document.getElementById('insight-top-growth');
+                    if (grwEl) grwEl.innerText = mp.topGrowth || "Complete core lessons to identify growth focus";
+
+                    // Populate Tier Progress Bars
+                    const tierContainer = document.getElementById('tier-breakdown-container');
+                    if (tierContainer) {
+                        tierContainer.innerHTML = '';
+                        const tierOrder = ["Beginner", "Intermediate", "Advanced", "Pro"];
+                        const tierColors = {
+                            "Beginner": "from-emerald-500 to-teal-400",
+                            "Intermediate": "from-indigo-500 to-brand-400",
+                            "Advanced": "from-purple-500 to-indigo-400",
+                            "Pro": "from-amber-500 to-rose-400"
+                        };
+                        tierOrder.forEach(tName => {
+                            const t = mp.tierStats ? mp.tierStats[tName] : null;
+                            if (t && t.total > 0) {
+                                tierContainer.innerHTML += `
+                                    <div class="space-y-1">
+                                        <div class="flex justify-between text-[11px]">
+                                            <span class="text-gray-300 font-medium">${tName} (${t.completed}/${t.total})</span>
+                                            <span class="text-brand-300 font-semibold">${t.avgMastery}%</span>
+                                        </div>
+                                        <div class="w-full bg-dark-950 rounded-full h-1.5 overflow-hidden border border-white/5">
+                                            <div class="bg-gradient-to-r ${tierColors[tName] || 'from-brand-500 to-indigo-400'} h-full rounded-full transition-all duration-500" style="width: ${t.avgMastery}%"></div>
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                        });
+                    }
+
+                    // Populate Skills Breakdown List
+                    const skillsList = document.getElementById('skills-breakdown-list');
+                    if (skillsList) {
+                        skillsList.innerHTML = '';
+                        if (mp.skills && mp.skills.length > 0) {
+                            mp.skills.forEach(s => {
+                                let badgeBg = 'bg-rose-500/20 text-rose-300 border-rose-500/30';
+                                let barColor = 'from-rose-500 to-rose-400';
+                                if (s.mastery >= 80) {
+                                    badgeBg = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+                                    barColor = 'from-emerald-500 to-teal-400';
+                                } else if (s.mastery >= 60) {
+                                    badgeBg = 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30';
+                                    barColor = 'from-indigo-500 to-brand-400';
+                                } else if (s.mastery >= 30) {
+                                    badgeBg = 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+                                    barColor = 'from-amber-500 to-yellow-400';
+                                }
+
+                                skillsList.innerHTML += `
+                                    <div class="p-2 rounded-xl bg-dark-900/60 border border-white/5 space-y-1.5 hover:border-brand-500/30 transition">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center space-x-1.5 truncate max-w-[170px]">
+                                                <span class="text-[9px] px-1.5 py-0.5 rounded-md bg-white/5 text-gray-400 font-mono">${s.tier}</span>
+                                                <span class="text-xs text-gray-200 font-semibold truncate" title="${s.name}">${s.name}</span>
+                                            </div>
+                                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${badgeBg}">${s.mastery}%</span>
+                                        </div>
+                                        <div class="w-full bg-dark-950 rounded-full h-1.5 overflow-hidden">
+                                            <div class="bg-gradient-to-r ${barColor} h-full rounded-full transition-all duration-500" style="width: ${s.mastery}%"></div>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                        } else {
+                            skillsList.innerHTML = '<div class="text-gray-500 text-xs py-4 text-center">No skills evaluated yet.</div>';
+                        }
+                    }
+                }
+
+                // Spaced Repetition decay list
+                const reviewContainer = document.getElementById('review-container');
+                const reviewList = document.getElementById('review-list');
+                if (reviewList && reviewContainer) {
+                    reviewList.innerHTML = '';
+                    if (!data.topicsNeedingReview || data.topicsNeedingReview.length === 0) {
+                        reviewContainer.classList.add('hidden');
+                    } else {
+                        reviewContainer.classList.remove('hidden');
+                        data.topicsNeedingReview.forEach(r => {
+                            reviewList.innerHTML += `
+                                <div class="flex items-center justify-between p-3.5 bg-dark-900/60 border border-white/5 rounded-xl">
+                                    <div>
+                                        <h4 class="font-semibold text-gray-200">${r.title}</h4>
+                                        <span class="text-xs text-rose-400 font-medium">Decayed to ${r.currentMastery}% (Originally ${r.originalMastery}%)</span>
+                                    </div>
+                                    <span class="text-xs text-gray-500 font-medium">${r.daysSinceReview} days since review</span>
+                                </div>
+                            `;
+                        });
+                    }
+                }
+
+                // Render Chart with Polished Styling
+                const radarCanvas = document.getElementById('masteryRadarChart');
+                if (radarCanvas && data.radarData && data.radarData.length > 0) {
+                    const ctx = radarCanvas.getContext('2d');
+                    if (masteryChartInstance) {
+                        masteryChartInstance.destroy();
+                    }
+                    masteryChartInstance = new Chart(ctx, {
+                        type: 'radar',
+                        data: {
+                            labels: data.radarData.map(item => item.concept),
+                            datasets: [{
+                                label: 'Mastery %',
+                                data: data.radarData.map(item => item.mastery),
+                                backgroundColor: 'rgba(99, 102, 241, 0.25)',
+                                borderColor: 'rgba(129, 140, 248, 0.9)',
+                                borderWidth: 2.5,
+                                pointBackgroundColor: 'rgba(99, 102, 241, 1)',
+                                pointBorderColor: '#ffffff',
+                                pointBorderWidth: 1.5,
+                                pointRadius: 3.5,
+                                pointHoverRadius: 6,
+                                pointHoverBackgroundColor: '#ffffff',
+                                pointHoverBorderColor: '#6366f1'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                                    titleColor: '#f3f4f6',
+                                    bodyColor: '#a5b4fc',
+                                    borderColor: 'rgba(99, 102, 241, 0.4)',
+                                    borderWidth: 1,
+                                    padding: 8,
+                                    cornerRadius: 8,
+                                    callbacks: {
+                                        label: function (context) {
+                                            return `Mastery: ${context.raw}%`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                r: {
+                                    angleLines: { color: 'rgba(255, 255, 255, 0.08)' },
+                                    grid: { color: 'rgba(255, 255, 255, 0.08)' },
+                                    pointLabels: {
+                                        color: '#cbd5e1',
+                                        font: { size: 10, weight: '600' }
+                                    },
+                                    ticks: {
+                                        display: false,
+                                        stepSize: 25
+                                    },
+                                    min: 0,
+                                    max: 100
+                                }
+                            }
+                        }
+                    });
+                }
+                safeCreateIcons();
+            })
+            .catch(err => console.error("Error loading dashboard metrics:", err));
+        {% endif %}
+
+        // Load Daily Sudoku Arena & Streak Sanctuary Data
+        loadSudoku(4);
+    });
+
+    // ========================================================
+    // DIVA DAILY SUDOKU ARENA & STREAK MAINTENANCE ENGINE
+    // ========================================================
+    let sudokuSize = 4;
+    let sudokuBlockR = 2;
+    let sudokuBlockC = 2;
+    let initialGrid = [];
+    let currentGrid = [];
+    let solutionGrid = [];
+    let notesGrid = {}; // key: "r_c" -> Array of numbers
+    let selectedCell = { r: 0, c: 0 };
+    let isPencilMode = false;
+    let mistakesCount = 0;
+    let timerSeconds = 0;
+    let timerInterval = null;
+    let isGameSolved = false;
+
+    function startSudokuTimer() {
+        if (timerInterval) clearInterval(timerInterval);
+        timerSeconds = 0;
+        const timerEl = document.getElementById('sudoku-timer');
+        timerInterval = setInterval(() => {
+            if (isGameSolved) return;
+            timerSeconds++;
+            const mins = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+            const secs = String(timerSeconds % 60).padStart(2, '0');
+            if (timerEl) timerEl.innerText = `${mins}:${secs}`;
+        }, 1000);
+    }
+
+    function switchSudokuSize(size) {
+        sudokuSize = size;
+
+        // Update size tab styling
+        [4, 6, 9].forEach(s => {
+            const btn = document.getElementById(`sudoku-size-${s}`);
+            if (btn) {
+                if (s === size) {
+                    btn.className = "px-2.5 py-1 rounded-lg bg-brand-600 text-white transition shadow cursor-pointer";
+                } else {
+                    btn.className = "px-2.5 py-1 rounded-lg text-gray-400 hover:text-white transition cursor-pointer";
+                }
+            }
+        });
+
+        // Update status pill XP
+        const xpMap = { 4: 50, 6: 75, 9: 100 };
+        const pill = document.getElementById('sudoku-status-pill');
+        if (pill) {
+            pill.innerText = `+${xpMap[size] || 50} XP Daily Booster`;
+            pill.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30";
+        }
+
+        // Hide victory modal if open
+        const victoryModal = document.getElementById('sudoku-victory-modal');
+        if (victoryModal) victoryModal.classList.add('hidden');
+
+        loadSudoku(size);
+    }
+
+    function loadSudoku(size) {
+        sudokuSize = size;
+        isGameSolved = false;
+        mistakesCount = 0;
+        notesGrid = {};
+        updateMistakesUI();
+        startSudokuTimer();
+
+        const gridContainer = document.getElementById('sudoku-grid-container');
+        if (gridContainer) {
+            gridContainer.innerHTML = '<div class="p-8 text-center text-xs text-gray-400"><i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto text-brand-400 mb-2"></i>Generating daily puzzle...</div>';
+            safeCreateIcons();
+        }
+
+        fetch(`/analytics/sudoku?size=${size}`)
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) return;
+
+                sudokuSize = data.size;
+                sudokuBlockR = data.blockRows;
+                sudokuBlockC = data.blockCols;
+                initialGrid = JSON.parse(JSON.stringify(data.initialGrid));
+                currentGrid = JSON.parse(JSON.stringify(data.initialGrid));
+                solutionGrid = JSON.parse(JSON.stringify(data.solution));
+
+                // 1. Update Streak Sanctuary & 7-Day Activity Ring
+                const s = data.streakInfo;
+                if (s) {
+                    const streakEl = document.getElementById('stat-streak');
+                    if (streakEl) streakEl.innerText = s.streakDays + " Days";
+
+                    const flameBox = document.getElementById('streak-flame-box');
+                    const tierTag = document.getElementById('streak-tier-tag');
+                    const multBadge = document.getElementById('streak-multiplier-badge');
+                    const freezeTxt = document.getElementById('streak-freeze-txt');
+
+                    if (s.tierInfo) {
+                        if (tierTag) {
+                            tierTag.innerText = s.tierInfo.tier;
+                            tierTag.className = `text-[9px] font-bold px-1.5 py-0.5 rounded ${s.tierInfo.textColor} bg-white/5 border border-white/10`;
+                        }
+                        if (multBadge) {
+                            multBadge.innerText = s.tierInfo.tag;
+                        }
+                        if (flameBox && s.tierInfo.flameColor) {
+                            flameBox.className = `w-10 h-10 rounded-xl bg-gradient-to-tr ${s.tierInfo.flameColor} flex items-center justify-center shadow-lg text-white`;
+                        }
+                    }
+
+                    if (freezeTxt) {
+                        freezeTxt.innerText = `${s.freezeCount} Shield${s.freezeCount === 1 ? '' : 's'}`;
+                    }
+
+                    renderWeekActivityRing(s.weekDays);
+                }
+
+                // 2. Find first editable cell to select
+                selectedCell = { r: 0, c: 0 };
+                for (let r = 0; r < sudokuSize; r++) {
+                    let found = false;
+                    for (let c = 0; c < sudokuSize; c++) {
+                        if (initialGrid[r][c] === 0) {
+                            selectedCell = { r, c };
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found) break;
+                }
+
+                // 3. Render Grid & Keypad
+                renderSudokuGrid();
+                renderSudokuKeypad();
+                safeCreateIcons();
+            })
+            .catch(err => {
+                console.error("Failed to load Sudoku:", err);
+                if (gridContainer) gridContainer.innerHTML = '<div class="p-6 text-rose-400 text-xs text-center">Failed to load Sudoku. Please refresh.</div>';
+            });
+    }
+
+    function renderWeekActivityRing(weekDays) {
+        const container = document.getElementById('week-activity-ring');
+        if (!container || !weekDays) return;
+        container.innerHTML = '';
+
+        weekDays.forEach(d => {
+            let ringClass = "border-white/10 text-gray-500 bg-dark-950/50";
+            let dotContent = d.dayName.substring(0, 1);
+
+            if (d.completed) {
+                ringClass = "border-emerald-500 bg-emerald-500/20 text-emerald-300 shadow-sm shadow-emerald-500/20";
+                dotContent = `<i data-lucide="check" class="w-2.5 h-2.5"></i>`;
+            } else if (d.isToday) {
+                ringClass = "border-brand-400 bg-brand-500/30 text-white animate-pulse ring-2 ring-brand-500/40";
+            }
+
+            container.innerHTML += `
+                <div class="flex flex-col items-center space-y-1">
+                    <div class="w-6 h-6 rounded-full border ${ringClass} flex items-center justify-center text-[10px] font-bold transition">
+                        ${dotContent}
+                    </div>
+                    <span class="text-[9px] font-medium ${d.isToday ? 'text-brand-300 font-bold' : 'text-gray-400'}">${d.dayName}</span>
+                </div>
+            `;
+        });
+        safeCreateIcons();
+    }
+
+    function renderSudokuGrid() {
+        const container = document.getElementById('sudoku-grid-container');
+        if (!container || !currentGrid || currentGrid.length === 0) return;
+
+        const selR = selectedCell.r;
+        const selC = selectedCell.c;
+        const selVal = (selR !== null && selC !== null && currentGrid[selR]) ? currentGrid[selR][selC] : null;
+
+        // Calculate Block bounds for selected cell
+        const selBlockR = Math.floor(selR / sudokuBlockR) * sudokuBlockR;
+        const selBlockC = Math.floor(selC / sudokuBlockC) * sudokuBlockC;
+
+        // Dynamic Cell sizing
+        let cellSizeClass = "w-11 h-11 text-base";
+        if (sudokuSize === 6) cellSizeClass = "w-9 h-9 text-sm";
+        if (sudokuSize === 9) cellSizeClass = "w-8 h-8 text-xs";
+
+        let html = `<div class="grid gap-0" style="grid-template-columns: repeat(${sudokuSize}, minmax(0, 1fr));">`;
+
+        for (let r = 0; r < sudokuSize; r++) {
+            for (let c = 0; c < sudokuSize; c++) {
+                const val = currentGrid[r][c];
+                const isInitial = (initialGrid[r][c] !== 0);
+                const isSelected = (r === selR && c === selC);
+                const isSameNum = (val !== 0 && selVal !== null && val === selVal);
+                const inSameRow = (r === selR);
+                const inSameCol = (c === selC);
+                const inSameBlock = (r >= selBlockR && r < selBlockR + sudokuBlockR && c >= selBlockC && c < selBlockC + sudokuBlockC);
+                const isCrosshair = (inSameRow || inSameCol || inSameBlock) && !isSelected;
+
+                // Border rules for sub-grids
+                let borderClasses = "border border-white/10";
+                if ((r + 1) % sudokuBlockR === 0 && r !== sudokuSize - 1) {
+                    borderClasses += " border-b-2 border-b-brand-400/80";
+                }
+                if ((c + 1) % sudokuBlockC === 0 && c !== sudokuSize - 1) {
+                    borderClasses += " border-r-2 border-r-brand-400/80";
+                }
+
+                // Background / Highlighting styles
+                let bgClasses = "bg-dark-900/60";
+                if (isSelected) {
+                    bgClasses = "bg-brand-600/40 ring-2 ring-brand-400 shadow-lg shadow-brand-500/20 z-10 scale-[1.03]";
+                } else if (isSameNum) {
+                    bgClasses = "bg-indigo-500/25 ring-1 ring-indigo-400/50";
+                } else if (isCrosshair) {
+                    bgClasses = "bg-white/[0.04]";
+                }
+
+                // Text coloring
+                let textClasses = "text-indigo-300 font-semibold";
+                if (isInitial) {
+                    textClasses = "text-white font-bold";
+                } else if (val !== 0 && solutionGrid.length > 0 && val !== solutionGrid[r][c]) {
+                    textClasses = "text-rose-400 font-bold bg-rose-500/20";
+                }
+
+                // Cell content: digit or notes
+                let cellContent = '';
+                if (val !== 0) {
+                    cellContent = `<span>${val}</span>`;
+                } else {
+                    const key = `${r}_${c}`;
+                    const notes = notesGrid[key] || [];
+                    if (notes.length > 0) {
+                        cellContent = `<div class="grid grid-cols-3 gap-0.5 text-[8px] font-mono text-gray-400 leading-none">`;
+                        for (let n = 1; n <= Math.min(sudokuSize, 9); n++) {
+                            cellContent += `<span>${notes.includes(n) ? n : ''}</span>`;
+                        }
+                        cellContent += `</div>`;
+                    }
+                }
+
+                html += `
+                    <button type="button" 
+                        onclick="selectSudokuCell(${r}, ${c})" 
+                        id="sudoku-cell-${r}-${c}" 
+                        class="${cellSizeClass} ${borderClasses} ${bgClasses} ${textClasses} flex items-center justify-center transition cursor-pointer select-none rounded-[3px]">
+                        ${cellContent}
+                    </button>
+                `;
+            }
+        }
+
+        html += `</div>`;
+        container.innerHTML = html;
+    }
+
+    function renderSudokuKeypad() {
+        const keypad = document.getElementById('sudoku-keypad');
+        if (!keypad) return;
+        keypad.innerHTML = '';
+
+        for (let num = 1; num <= sudokuSize; num++) {
+            keypad.innerHTML += `
+                <button type="button" onclick="inputSudokuNumber(${num})" class="py-2.5 rounded-xl bg-dark-900/90 hover:bg-brand-600/30 border border-white/10 hover:border-brand-500/50 text-white font-bold text-sm transition flex items-center justify-center shadow cursor-pointer active:scale-95">
+                    ${num}
+                </button>
+            `;
+        }
+    }
+
+    window.selectSudokuCell = function (r, c) {
+        selectedCell = { r, c };
+        renderSudokuGrid();
+    };
+
+    window.inputSudokuNumber = function (num) {
+        if (isGameSolved) return;
+        const r = selectedCell.r;
+        const c = selectedCell.c;
+        if (r === null || c === null) return;
+
+        // Cannot edit starter clues
+        if (initialGrid[r][c] !== 0) return;
+
+        const key = `${r}_${c}`;
+
+        if (isPencilMode) {
+            // Toggle note
+            if (!notesGrid[key]) notesGrid[key] = [];
+            const idx = notesGrid[key].indexOf(num);
+            if (idx > -1) {
+                notesGrid[key].splice(idx, 1);
+            } else {
+                notesGrid[key].push(num);
+                notesGrid[key].sort((a, b) => a - b);
+            }
+            renderSudokuGrid();
+            return;
+        }
+
+        // Normal mode input
+        currentGrid[r][c] = num;
+        delete notesGrid[key];
+
+        // Check mistake against solution
+        if (solutionGrid.length > 0 && num !== solutionGrid[r][c]) {
+            mistakesCount++;
+            updateMistakesUI();
+
+            const feedbackEl = document.getElementById('sudoku-feedback-txt');
+            if (feedbackEl) {
+                feedbackEl.innerHTML = `<span class="text-rose-400 font-semibold">⚠️ ${num} violates row, column, or block constraint. Try again or ask Diva Hint!</span>`;
+            }
+        } else {
+            const feedbackEl = document.getElementById('sudoku-feedback-txt');
+            if (feedbackEl) {
+                feedbackEl.innerHTML = `<span class="text-emerald-400 font-medium">✨ Great move! ${num} is correct.</span>`;
+            }
+        }
+
+        renderSudokuGrid();
+
+        // Check if board is completely solved
+        checkSudokuCompletion();
+    };
+
+    window.eraseSelectedCell = function () {
+        if (isGameSolved) return;
+        const r = selectedCell.r;
+        const c = selectedCell.c;
+        if (r === null || c === null) return;
+        if (initialGrid[r][c] !== 0) return;
+
+        currentGrid[r][c] = 0;
+        delete notesGrid[`${r}_${c}`];
+        renderSudokuGrid();
+    };
+
+    window.togglePencilMode = function () {
+        isPencilMode = !isPencilMode;
+        const modeTxt = document.getElementById('pencil-mode-txt');
+        if (modeTxt) {
+            if (isPencilMode) {
+                modeTxt.innerText = "ON ✏️";
+                modeTxt.className = "text-brand-300 font-bold";
+            } else {
+                modeTxt.innerText = "OFF";
+                modeTxt.className = "text-gray-400 font-normal";
+            }
+        }
+    };
+
+    function updateMistakesUI() {
+        const mistakesEl = document.getElementById('sudoku-mistakes');
+        if (mistakesEl) {
+            mistakesEl.innerHTML = `<span>${mistakesCount}/3</span>`;
+            if (mistakesCount >= 3) {
+                mistakesEl.className = "text-rose-400 font-bold flex items-center gap-1 animate-pulse";
+            } else {
+                mistakesEl.className = "text-rose-400 flex items-center gap-1";
+            }
+        }
+    }
+
+    function checkSudokuCompletion() {
+        for (let r = 0; r < sudokuSize; r++) {
+            for (let c = 0; c < sudokuSize; c++) {
+                if (currentGrid[r][c] === 0 || currentGrid[r][c] !== solutionGrid[r][c]) {
+                    return;
+                }
+            }
+        }
+        // If all match, trigger victory!
+        submitSudokuBoard();
+    }
+
+    window.submitSudokuBoard = function () {
+        const submitBtn = document.getElementById('sudoku-submit-btn');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Verifying...</span>`;
+        safeCreateIcons();
+
+        fetch('/analytics/sudoku/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                board: currentGrid,
+                solution: solutionGrid,
+                size: sudokuSize
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.isCorrect) {
+                    isGameSolved = true;
+                    if (timerInterval) clearInterval(timerInterval);
+
+                    // Confetti blast
+                    if (typeof confetti === 'function') {
+                        confetti({
+                            particleCount: 150,
+                            spread: 90,
+                            origin: { y: 0.6 }
+                        });
+                    }
+
+                    // Update Stats Live
+                    if (data.newTotalXP !== undefined) {
+                        const xpEl = document.getElementById('stat-xp');
+                        if (xpEl) xpEl.innerText = data.newTotalXP + " XP";
+                    }
+                    if (data.newStreakDays !== undefined) {
+                        const strkEl = document.getElementById('stat-streak');
+                        if (strkEl) strkEl.innerText = data.newStreakDays + " Days";
+                    }
+
+                    // Populate Victory Overlay
+                    const mins = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+                    const secs = String(timerSeconds % 60).padStart(2, '0');
+                    document.getElementById('sudoku-victory-stats').innerText = `Solved the ${sudokuSize}x${sudokuSize} grid in ${mins}:${secs} with ${mistakesCount} mistakes!`;
+                    document.getElementById('sudoku-victory-xp').innerText = `+${data.xpEarned || 50} XP Earned • ${data.streakTier || 'Flame'} Multiplier Active!`;
+
+                    const nextBtn = document.getElementById('sudoku-next-size-btn');
+                    if (nextBtn) {
+                        if (sudokuSize === 4) {
+                            nextBtn.innerText = "Try 6x6 Medium →";
+                            nextBtn.onclick = () => switchSudokuSize(6);
+                        } else if (sudokuSize === 6) {
+                            nextBtn.innerText = "Try 9x9 Classic →";
+                            nextBtn.onclick = () => switchSudokuSize(9);
+                        } else {
+                            nextBtn.innerText = "Replay 4x4 Mini ⚡";
+                            nextBtn.onclick = () => switchSudokuSize(4);
+                        }
+                    }
+
+                    document.getElementById('sudoku-victory-modal').classList.remove('hidden');
+
+                    // Status pill
+                    const statusPill = document.getElementById('sudoku-status-pill');
+                    if (statusPill) {
+                        statusPill.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+                        statusPill.innerText = "✅ Completed Today";
+                    }
+
+                    if (data.unlockedBadges && data.unlockedBadges.length > 0) {
+                        alert(`🎉 Achievement Unlocked: ${data.unlockedBadges.join(', ')}!`);
+                    }
+                } else {
+                    const feedbackEl = document.getElementById('sudoku-feedback-txt');
+                    if (feedbackEl) {
+                        feedbackEl.innerHTML = `<span class="text-rose-400 font-semibold">❌ ${data.message || "Some cells are incorrect"}. Try using Diva Hint!</span>`;
+                    }
+                }
+            })
+            .catch(err => console.error("Sudoku submission failed:", err))
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5"></i><span>Verify</span>`;
+                safeCreateIcons();
+            });
+    };
+
+    window.askDivaSudokuHint = function () {
+        const hintBtn = document.getElementById('sudoku-hint-btn');
+        hintBtn.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Thinking...</span>`;
+        safeCreateIcons();
+
+        fetch('/analytics/sudoku/hint', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                board: currentGrid,
+                solution: solutionGrid,
+                size: sudokuSize
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.row >= 0) {
+                    // Select target cell
+                    selectedCell = { r: data.row, c: data.col };
+                    renderSudokuGrid();
+
+                    // Update feedback text
+                    const feedbackEl = document.getElementById('sudoku-feedback-txt');
+                    if (feedbackEl) {
+                        feedbackEl.innerHTML = `<span class="text-amber-300 font-semibold">💡 Diva Clue:</span> ${data.hint}`;
+                    }
+
+                    // Voice TTS
+                    if (typeof speakDashReply === 'function') {
+                        speakDashReply(data.hint);
+                    }
+                }
+            })
+            .catch(err => console.error("Hint error:", err))
+            .finally(() => {
+                hintBtn.innerHTML = `<i data-lucide="sparkles" class="w-3.5 h-3.5 text-brand-400"></i><span>Diva Hint 🎙️</span>`;
+                safeCreateIcons();
+            });
+    };
+
+    window.resetCurrentSudoku = function () {
+        currentGrid = JSON.parse(JSON.stringify(initialGrid));
+        notesGrid = {};
+        mistakesCount = 0;
+        updateMistakesUI();
+        renderSudokuGrid();
+    };
+
+    window.dismissSudokuVictory = function () {
+        const modal = document.getElementById('sudoku-victory-modal');
+        if (modal) modal.classList.add('hidden');
+    };
+
+    // Keyboard support (1-9, backspace, arrows)
+    document.addEventListener('keydown', function (e) {
+        if (!selectedCell || selectedCell.r === null) return;
+
+        // Number keys 1-9
+        if (e.key >= '1' && e.key <= String(sudokuSize)) {
+            inputSudokuNumber(parseInt(e.key));
+        } else if (e.key === 'Backspace' || e.key === 'Delete') {
+            eraseSelectedCell();
+        } else if (e.key === 'ArrowUp' && selectedCell.r > 0) {
+            selectedCell.r--;
+            renderSudokuGrid();
+        } else if (e.key === 'ArrowDown' && selectedCell.r < sudokuSize - 1) {
+            selectedCell.r++;
+            renderSudokuGrid();
+        } else if (e.key === 'ArrowLeft' && selectedCell.c > 0) {
+            selectedCell.c--;
+            renderSudokuGrid();
+        } else if (e.key === 'ArrowRight' && selectedCell.c < sudokuSize - 1) {
+            selectedCell.c++;
+            renderSudokuGrid();
+        }
+    });
+</script>
+{% endblock %}
