@@ -25,6 +25,10 @@ from app import create_app
 
 app = create_app()
 
+@app.route("/health")
+def health():
+    return "OK", 200
+
 if __name__ == "__main__":
     port_str = os.environ.get("PORT", "5001").strip("\"' \t\n\r")
     try:
