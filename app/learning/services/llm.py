@@ -41,22 +41,30 @@ if not groq_client and not gemini_client:
     logger.critical("Neither GROQ_API_KEY nor GEMINI_API_KEY is configured. LLM calls will fail.")
 
 # =====================================================================
-# 2. MODEL DEFINITIONS & POOLS
+# 2. MODEL DEFINITIONS & POOLS (Task Specialized)
 # =====================================================================
 
+# Primary for Deep Reasoning, Large Context & Structured Synthesis (Skill Maps, Chapters, Diagnostic)
 GEMINI_MODELS = [
-    "gemini-flash-lite-latest",
-    "gemini-2.5-flash",
-    "gemini-flash-latest",
-    "gemini-3.7-flash"
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+    "gemini-2.0-flash-lite",
+    "gemini-1.5-pro"
 ]
 
-GROQ_MODELS = [
-    "llama-3.3-70b-versatile",
-    "openai/gpt-oss-120b",
+# Primary for Real-Time, Sub-Second Speed (Tutor Chat, Compiler Feedback, Live Evaluation)
+GROQ_FAST_MODELS = [
     "llama-3.1-8b-instant",
-    "openai/gpt-oss-20b",
-    "qwen/qwen3.6-27b"
+    "mixtral-8x7b-32768",
+    "gemma2-9b-it",
+    "llama-3.3-70b-versatile"
+]
+
+GROQ_STRUCTURED_MODELS = [
+    "llama-3.1-8b-instant",
+    "mixtral-8x7b-32768",
+    "gemma2-9b-it",
+    "llama-3.3-70b-versatile"
 ]
 
 class LLMGenerationError(Exception):
@@ -66,32 +74,52 @@ class LLMGenerationError(Exception):
 # 3. STRUCTURED JSON CALLS (Gemini First for Deep Depth -> Groq Fallback)
 # =====================================================================
 
-def _call_gemini_json(prompt: str, schema: type[BaseModel], model: str = "gemini-flash-latest", max_tokens: int = 4000) -> BaseModel:
-    """Execute structured JSON call via Google Gemini API with native schema validation."""
-    if not gemini_client:
-        raise ValueError("Gemini client not initialized")
+def _call_gemini_rest(prompt: str, model: str = "gemini-2.0-flash", max_tokens: int = 4000, json_mode: bool = True) -> str:
+    """Execute direct Gemini API REST call using x-goog-api-key header for full AQ./AIza. key compatibility."""
+    import requests
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    headers = {
+        "x-goog-api-key": gemini_api_key,
+        "Content-Type": "application/json"
+    }
+    gen_config = {
+        "temperature": 0.2,
+        "maxOutputTokens": max_tokens
+    }
+    if json_mode:
+        gen_config["responseMimeType"] = "application/json"
         
-    from google.genai import types
+    payload = {
+        "contents": [{
+            "parts": [{"text": prompt}]
+        }],
+        "generationConfig": gen_config
+    }
     
-    # Configure Gemini structured JSON generation with native Pydantic schema
-    config = types.GenerateContentConfig(
-        temperature=0.2,
-        max_output_tokens=max_tokens,
-        response_mime_type="application/json",
-        response_schema=schema
-    )
-    
-    response = gemini_client.models.generate_content(
-        model=model,
-        contents=prompt,
-        config=config
-    )
-    
-    raw = response.text or ""
+    resp = requests.post(url, headers=headers, json=payload, timeout=25)
+    if resp.status_code != 200:
+        raise Exception(f"Gemini API Error {resp.status_code}: {resp.text}")
+        
+    data = resp.json()
     try:
-        return schema.model_validate_json(raw)
+        return data["candidates"][0]["content"]["parts"][0]["text"]
+    except (KeyError, IndexError) as ke:
+        raise Exception(f"Malformed Gemini API response: {data}") from ke
+
+def _call_gemini_json(prompt: str, schema: type[BaseModel], model: str = "gemini-2.0-flash", max_tokens: int = 4000) -> BaseModel:
+    """Execute structured JSON call via Google Gemini API."""
+    if not gemini_api_key:
+        raise ValueError("Gemini API key not configured")
+        
+    schema_hint = f"\n\nReturn ONLY a JSON object strictly matching this schema definition:\n{json.dumps(schema.model_json_schema())}"
+    full_prompt = prompt + schema_hint
+    
+    raw = _call_gemini_rest(full_prompt, model=model, max_tokens=max_tokens, json_mode=True)
+    cleaned = re.sub(r"```json|```", "", raw).strip()
+    
+    try:
+        return schema.model_validate_json(cleaned)
     except Exception:
-        cleaned = re.sub(r"```json|```", "", raw).strip()
         start_idx = cleaned.find("{")
         if start_idx != -1:
             try:
@@ -99,29 +127,25 @@ def _call_gemini_json(prompt: str, schema: type[BaseModel], model: str = "gemini
                 return schema.model_validate(obj)
             except Exception:
                 pass
-        try:
-            parsed = json.loads(cleaned)
-            return schema.model_validate(parsed)
-        except Exception as pe:
-            logger.warning("Gemini JSON validation failed on %s: %s", model, pe)
-            raise pe
+        parsed = json.loads(cleaned)
+        return schema.model_validate(parsed)
 
-def _call_groq_json(prompt: str, schema: type[BaseModel], model: str = "llama-3.3-70b-versatile", max_tokens: int = 3500) -> BaseModel:
+def _call_groq_json(prompt: str, schema: type[BaseModel], model: str = "llama-3.1-8b-instant", max_tokens: int = 3500) -> BaseModel:
     """Execute structured JSON call via Groq API."""
     if not groq_client:
         raise ValueError("Groq client not initialized")
         
+    schema_hint = f"\n\nReturn ONLY valid JSON matching this schema:\n{json.dumps(schema.model_json_schema())}"
+    
     call_kwargs = {
         "model": model,
         "messages": [
             {"role": "system", "content": "You are a precise JSON-generating educational API. Return ONLY strictly valid JSON matching the requested schema. Do not enclose in markdown fences, do not output explanatory prose outside JSON."},
-            {"role": "user", "content": prompt},
+            {"role": "user", "content": prompt + schema_hint},
         ],
-        "temperature": 0.3,
+        "temperature": 0.2,
         "max_tokens": min(max_tokens, 3500)
     }
-    if "qwen" in model.lower():
-        call_kwargs["reasoning_effort"] = "none"
         
     completion = groq_client.chat.completions.create(**call_kwargs)
     raw = completion.choices[0].message.content or ""
@@ -129,58 +153,92 @@ def _call_groq_json(prompt: str, schema: type[BaseModel], model: str = "llama-3.
     cleaned = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
     cleaned = re.sub(r"```json|```", "", cleaned).strip()
     
-    start_idx = cleaned.find("{")
-    if start_idx != -1:
-        try:
-            obj, _ = json.JSONDecoder(strict=False).raw_decode(cleaned[start_idx:])
-            return schema.model_validate(obj)
-        except Exception as pe:
-            logger.warning("Groq JSON decode raw_decode failed on %s: %s", model, pe)
-            
-    parsed = json.loads(cleaned)
-    return schema.model_validate(parsed)
+    try:
+        return schema.model_validate_json(cleaned)
+    except Exception:
+        start_idx = cleaned.find("{")
+        if start_idx != -1:
+            try:
+                obj, _ = json.JSONDecoder(strict=False).raw_decode(cleaned[start_idx:])
+                return schema.model_validate(obj)
+            except Exception:
+                pass
+        parsed = json.loads(cleaned)
+        return schema.model_validate(parsed)
 
-def call_llm(prompt: str, schema: type[BaseModel], model_type: str = "thinking", retries: int = 4, max_tokens: int = 3600) -> BaseModel:
+def call_llm(prompt: str, schema: type[BaseModel], model_type: str = "thinking", retries: int = 2, max_tokens: int = 3600) -> BaseModel:
     """
-    Intelligent Dual-Engine Dispatch:
-    1. If GEMINI_API_KEY is active: Attempts Gemini Flash Latest / 3.7 Flash / Flash Lite (highest depth, 1M context, robust JSON).
-    2. If Gemini is unavailable or rate-limited: Seamlessly cascades through Groq Llama 3.3 70B / GPT-OSS pool.
-    3. If only Groq is configured: Directly executes Groq model pool cascade.
+    Intelligent Task-Specialized Dual-Engine Dispatch:
+    - model_type="fast": Uses Groq first (sub-second generation for diagnostics, skill maps, quizzes),
+      with Gemini as reliable fallback.
+    - model_type="thinking" (default): Uses Google Gemini first (deep context & chapter textbook depth),
+      with Groq as reliable fallback.
     """
     last_error = None
     
-    # 1. Try Gemini first if available (Superior for textbook chapter depth and structured JSON)
-    if gemini_client:
-        for g_model in GEMINI_MODELS:
-            try:
-                logger.info("Executing structured generation with Google Gemini (%s)...", g_model)
-                return _call_gemini_json(prompt, schema, model=g_model, max_tokens=max_tokens)
-            except Exception as ge:
-                last_error = ge
-                logger.warning("Gemini model %s encountered error (%s). Trying next Gemini model in pool...", g_model, ge)
-                time.sleep(0.5)
-                continue
-                
-    # 2. Try Groq Model Pool
-    if groq_client:
-        for g_model in GROQ_MODELS:
-            try:
-                logger.info("Executing structured generation with Groq (%s)...", g_model)
-                return _call_groq_json(prompt, schema, model=g_model, max_tokens=max_tokens)
-            except Exception as qe:
-                last_error = qe
-                logger.warning("Groq model %s failed (%s). Cycling to next model...", g_model, qe)
-                time.sleep(1.0)
-                continue
+    # Strategy A: Fast tasks prioritize Groq -> Gemini fallback
+    if model_type == "fast":
+        if groq_client:
+            for g_model in GROQ_STRUCTURED_MODELS:
+                try:
+                    logger.info("Executing fast structured generation with Groq (%s)...", g_model)
+                    return _call_groq_json(prompt, schema, model=g_model, max_tokens=max_tokens)
+                except Exception as qe:
+                    last_error = qe
+                    err_str = str(qe)
+                    logger.warning("Groq model %s failed: %s", g_model, qe)
+                    if "401" in err_str or "Invalid API Key" in err_str:
+                        break
+                    continue
+        if gemini_api_key:
+            for g_model in GEMINI_MODELS:
+                try:
+                    logger.info("Executing structured fallback with Google Gemini (%s)...", g_model)
+                    return _call_gemini_json(prompt, schema, model=g_model, max_tokens=max_tokens)
+                except Exception as ge:
+                    last_error = ge
+                    err_str = str(ge)
+                    logger.warning("Gemini model %s failed: %s", g_model, ge)
+                    if "401" in err_str or "UNAUTHENTICATED" in err_str or "403" in err_str:
+                        break
+                    continue
+
+    # Strategy B: Deep/Thinking tasks prioritize Gemini -> Groq fallback
+    else:
+        if gemini_api_key:
+            for g_model in GEMINI_MODELS:
+                try:
+                    logger.info("Executing deep structured generation with Google Gemini (%s)...", g_model)
+                    return _call_gemini_json(prompt, schema, model=g_model, max_tokens=max_tokens)
+                except Exception as ge:
+                    last_error = ge
+                    err_str = str(ge)
+                    logger.warning("Gemini model %s encountered error: %s", g_model, ge)
+                    if "401" in err_str or "UNAUTHENTICATED" in err_str or "403" in err_str:
+                        break
+                    continue
+                    
+        if groq_client:
+            for g_model in GROQ_STRUCTURED_MODELS:
+                try:
+                    logger.info("Executing deep generation fallback with Groq (%s)...", g_model)
+                    return _call_groq_json(prompt, schema, model=g_model, max_tokens=max_tokens)
+                except Exception as qe:
+                    last_error = qe
+                    err_str = str(qe)
+                    logger.warning("Groq model %s failed: %s", g_model, qe)
+                    if "401" in err_str or "Invalid API Key" in err_str:
+                        break
+                    continue
 
     logger.error("All Dual-Engine LLM generation attempts failed: %s", last_error)
-    raise LLMGenerationError(f"LLM generation failed across both Gemini and Groq providers: {last_error}")
+    raise LLMGenerationError(f"LLM generation failed across providers: {last_error}")
 
 # =====================================================================
-# 4. CONVERSATIONAL & REAL-TIME CALLS (Groq First for Sub-Second Speed)
+# 4. CONVERSATIONAL & REAL-TIME CALLS (Task Specialized)
 # =====================================================================
 
-def _call_groq_text(prompt: str, model: str = "llama-3.3-70b-versatile", max_tokens: int = 2000) -> str:
+def _call_groq_text(prompt: str, model: str = "llama-3.1-8b-instant", max_tokens: int = 2000) -> str:
     """Execute text generation with Groq."""
     if not groq_client:
         raise ValueError("Groq client not initialized")
@@ -190,55 +248,75 @@ def _call_groq_text(prompt: str, model: str = "llama-3.3-70b-versatile", max_tok
         "temperature": 0.4,
         "max_tokens": max_tokens
     }
-    if "qwen" in model.lower():
-        call_kwargs["reasoning_effort"] = "none"
     completion = groq_client.chat.completions.create(**call_kwargs)
     raw = completion.choices[0].message.content or ""
     return re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
 
-def _call_gemini_text(prompt: str, model: str = "gemini-2.5-flash", max_tokens: int = 2000) -> str:
+def _call_gemini_text(prompt: str, model: str = "gemini-2.0-flash", max_tokens: int = 2000) -> str:
     """Execute text generation with Gemini."""
-    if not gemini_client:
-        raise ValueError("Gemini client not initialized")
-    from google.genai import types
-    config = types.GenerateContentConfig(
-        temperature=0.4,
-        max_output_tokens=max_tokens
-    )
-    response = gemini_client.models.generate_content(
-        model=model,
-        contents=prompt,
-        config=config
-    )
-    return (response.text or "").strip()
+    if not gemini_api_key:
+        raise ValueError("Gemini API key not configured")
+    raw = _call_gemini_rest(prompt, model=model, max_tokens=max_tokens, json_mode=False)
+    return (raw or "").strip()
 
 def call_llm_text(prompt: str, model_type: str = "fast", retries: int = 1) -> str:
     """
-    Intelligent Dual-Engine Text Dispatch:
-    1. Attempts Google Gemini Flash for sub-second, highly coherent tutoring responses.
-    2. Falls back to Groq models if Gemini hits quota/errors.
+    Conversational / Real-Time Dispatch:
+    - model_type="fast": Groq (sub-second Socratic chat, compiler feedback, hints) -> Gemini fallback.
+    - model_type="thinking": Gemini (in-depth conversational tutoring) -> Groq fallback.
     """
     last_error = None
     
-    # 1. Try Gemini first for ultra-fast, rich conversational responses
-    if gemini_client:
-        for gemini_model in ["gemini-flash-lite-latest", "gemini-2.5-flash", "gemini-flash-latest"]:
-            try:
-                return _call_gemini_text(prompt, model=gemini_model)
-            except Exception as ge:
-                last_error = ge
-                logger.warning("Gemini text model %s failed (%s). Trying fallback...", gemini_model, ge)
-                continue
-
-    # 2. Try Groq as robust fallback
-    if groq_client:
-        for g_model in ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "qwen/qwen3.6-27b"]:
-            try:
-                return _call_groq_text(prompt, model=g_model)
-            except Exception as qe:
-                last_error = qe
-                logger.warning("Groq text model %s failed (%s)...", g_model, qe)
-                continue
+    if model_type == "fast":
+        # 1. Try Groq first for real-time interactive speed
+        if groq_client:
+            for g_model in GROQ_FAST_MODELS:
+                try:
+                    return _call_groq_text(prompt, model=g_model)
+                except Exception as qe:
+                    last_error = qe
+                    err_str = str(qe)
+                    logger.warning("Groq text model %s failed: %s", g_model, qe)
+                    if "401" in err_str or "Invalid API Key" in err_str:
+                        break
+                    continue
+        # 2. Try Gemini fallback
+        if gemini_api_key:
+            for gemini_model in ["gemini-2.0-flash", "gemini-1.5-flash"]:
+                try:
+                    return _call_gemini_text(prompt, model=gemini_model)
+                except Exception as ge:
+                    last_error = ge
+                    err_str = str(ge)
+                    logger.warning("Gemini text model %s failed: %s", gemini_model, ge)
+                    if "401" in err_str or "UNAUTHENTICATED" in err_str or "403" in err_str:
+                        break
+                    continue
+    else:
+        # Deep/Thinking text generation (Gemini first -> Groq fallback)
+        if gemini_api_key:
+            for gemini_model in ["gemini-2.0-flash", "gemini-1.5-flash"]:
+                try:
+                    return _call_gemini_text(prompt, model=gemini_model)
+                except Exception as ge:
+                    last_error = ge
+                    err_str = str(ge)
+                    logger.warning("Gemini text model %s failed: %s", gemini_model, ge)
+                    if "401" in err_str or "UNAUTHENTICATED" in err_str or "403" in err_str:
+                        break
+                    continue
+        if groq_client:
+            for g_model in GROQ_FAST_MODELS:
+                try:
+                    return _call_groq_text(prompt, model=g_model)
+                except Exception as qe:
+                    last_error = qe
+                    err_str = str(qe)
+                    logger.warning("Groq text model %s failed: %s", g_model, qe)
+                    if "401" in err_str or "Invalid API Key" in err_str:
+                        break
+                    continue
 
     logger.error("LLM text generation failed across all Dual-Engine providers: %s", last_error)
-    raise LLMGenerationError(f"LLM text generation failed across Gemini and Groq providers: {last_error}")
+    raise LLMGenerationError(f"LLM text generation failed: {last_error}")
+
