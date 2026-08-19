@@ -2101,7 +2101,7 @@
                 this.audio.onerror = null;
                 this.audio.oncanplay = null;
                 try {
-                    this.audio.pause();
+                    this.audio.stop();
                     this.audio.src = '';
                 } catch(e) {}
                 this.audio = null;
@@ -2112,7 +2112,7 @@
             }
 
             if (recognition && isListening) {
-                try { recognition.pause(); } catch(e) {}
+                try { recognition.stop(); } catch(e) {}
             }
 
             updatePlayerUI('idle', 'Listen to AI audio narration in your language');
