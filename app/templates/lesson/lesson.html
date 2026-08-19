@@ -2101,7 +2101,7 @@
                 this.audio.onerror = null;
                 this.audio.oncanplay = null;
                 try {
-                    this.audio.stop();
+                    this.audio.pause();
                     this.audio.src = '';
                 } catch(e) {}
                 this.audio = null;
