@@ -986,42 +986,26 @@
 
     // ── Configure Marked Renderer for Mermaid & Code blocks ──
     const customRenderer = new marked.Renderer();
+    customRenderer.code = function (token, lang) {
+        let code = '';
+        let language = '';
+        if (typeof token === 'object' && token !== null) {
+            code = token.text || '';
+            language = token.lang || '';
+        } else {
+            code = token || '';
+            language = lang || '';
+        }
 
-function escapeHtml(value) {
-    return String(value || '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
+        language = (language || '').trim().toLowerCase();
 
-customRenderer.code = function (token, lang) {
-    let code = '';
-    let language = '';
+        if (language === 'mermaid') {
+            return `<div class="mermaid">${code}</div>`;
+        }
 
-    if (typeof token === 'object' && token !== null) {
-        code = token.text || '';
-        language = token.lang || '';
-    } else {
-        code = token || '';
-        language = lang || '';
-    }
-
-    language = String(language || '').trim().toLowerCase();
-    code = String(code || '').trim();
-
-    if (language === 'mermaid') {
-        return `<div class="mermaid">${escapeHtml(code)}</div>`;
-    }
-
-    return `<pre><code class="language-${escapeHtml(language || 'text')}">${escapeHtml(code)}</code></pre>`;
-};
-
-marked.setOptions({
-    renderer: customRenderer,
-    breaks: true
-});
+        return `<pre><code class="language-${language || 'text'}">${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
+    };
+    marked.setOptions({ renderer: customRenderer, breaks: true });
 
     // ── Universal Numeral & Code Normalizer (All Languages & Scripts) ──
     function normalizeNumeralsClient(text) {
@@ -1197,24 +1181,6 @@ marked.setOptions({
         initSpeechRecognition();
     });
 
-    function renderMermaidDiagrams(container) {
-    if (typeof mermaid === 'undefined') return;
-
-    const nodes = container.querySelectorAll('.mermaid');
-
-    if (!nodes.length) return;
-
-    nodes.forEach((node) => {
-        node.removeAttribute('data-processed');
-    });
-
-    mermaid.run({
-        nodes: Array.from(nodes)
-    }).catch((err) => {
-        console.error("Mermaid rendering failed:", err);
-    });
-}
-
     function setActiveSection(idx) {
         if (idx < 0 || idx >= sections.length) return;
         activeSecIdx = idx;
@@ -1261,15 +1227,15 @@ marked.setOptions({
         // Enhance all code blocks with 1-click Copy and Run in Runner buttons
         decorateCodeBlocks();
 
-        setTimeout(() => {
-    const container = document.getElementById('section-markdown-content');
-
-    if (container) {
-        renderMermaidDiagrams(container);
-    }
-}, 100);
-
-        // Render any Mermaid flowcharts/diagr
+        // Render any Mermaid flowcharts/diagrams
+        if (typeof mermaid !== 'undefined') {
+            setTimeout(() => {
+                const nodes = document.querySelectorAll('#section-markdown-content .mermaid');
+                if (nodes.length > 0) {
+                    mermaid.run({ nodes: nodes }).catch(err => console.warn("Mermaid render notice:", err));
+                }
+            }, 60);
+        }
 
         // Example box
         if (sec.example) {
