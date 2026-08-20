@@ -8,192 +8,235 @@
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 
 <style>
-.prose h3 {
-    color: #f8fafc !important;
-    font-size: 1.35rem !important;
-    font-weight: 800 !important;
-    margin-top: 2.25rem !important;
-    margin-bottom: 1rem !important;
-    padding-bottom: 0.5rem !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-    letter-spacing: -0.01em !important;
-}
-.prose p {
-    color: #cbd5e1 !important;
-    font-size: 1.05rem !important;
-    line-height: 1.8 !important;
-    margin-bottom: 1.25rem !important;
-}
-.prose ul, .prose ol {
-    margin-bottom: 1.25rem !important;
-    padding-left: 1.5rem !important;
-    color: #cbd5e1 !important;
-}
-.prose li {
-    margin-bottom: 0.5rem !important;
-    line-height: 1.7 !important;
-}
-.prose pre {
-    background-color: #030712 !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 0.875rem !important;
-    padding: 1.15rem 1.35rem !important;
-    overflow-x: auto !important;
-    white-space: pre !important;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
-    line-height: 1.55 !important;
-    margin: 1.25rem 0 !important;
-    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5) !important;
-}
-.prose code {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
-    background-color: rgba(30, 41, 59, 0.7) !important;
-    color: #38bdf8 !important;
-    padding: 0.2rem 0.45rem !important;
-    border-radius: 0.375rem !important;
-    font-size: 0.9em !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-}
-.prose pre code {
-    background-color: transparent !important;
-    color: #f1f5f9 !important;
-    padding: 0 !important;
-    border: none !important;
-    font-size: 0.925rem !important;
-}
-.prose blockquote {
-    border-left: 4px solid #6366f1 !important;
-    background: rgba(15, 23, 42, 0.6) !important;
-    border-radius: 0 0.75rem 0.75rem 0 !important;
-    padding: 0.875rem 1.25rem !important;
-    margin: 1.25rem 0 !important;
-    color: #94a3b8 !important;
-    font-style: normal !important;
-}
-.prose table {
-    width: 100% !important;
-    border-collapse: collapse !important;
-    margin: 1.5rem 0 !important;
-    border-radius: 0.75rem !important;
-    overflow: hidden !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
-.prose th {
-    background: rgba(30, 41, 59, 0.8) !important;
-    color: #f8fafc !important;
-    padding: 0.75rem 1rem !important;
-    font-weight: 700 !important;
-    text-align: left !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
-.prose td {
-    padding: 0.75rem 1rem !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-    color: #cbd5e1 !important;
-}
-.prose tr:nth-child(even) {
-    background: rgba(255, 255, 255, 0.02) !important;
-}
-.mermaid {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: rgba(11, 15, 25, 0.85);
-    border: 1px solid rgba(99, 102, 241, 0.25);
-    border-radius: 1rem;
-    padding: 1.5rem;
-    margin: 1.75rem 0;
-    overflow-x: auto;
-}
-.mermaid svg {
-    max-width: 100%;
-    height: auto;
-}
-.perspective-1000 {
-    perspective: 1000px;
-}
-.transform-style-3d {
-    transform-style: preserve-3d;
-}
-.backface-hidden {
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-}
-.rotate-y-180 {
-    transform: rotateY(180deg);
-}
-.flashcard-flipped {
-    transform: rotateY(180deg);
-}
+    .prose h3 {
+        color: #f8fafc !important;
+        font-size: 1.35rem !important;
+        font-weight: 800 !important;
+        margin-top: 2.25rem !important;
+        margin-bottom: 1rem !important;
+        padding-bottom: 0.5rem !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        letter-spacing: -0.01em !important;
+    }
 
-@media print {
-    body, html {
-        background: #ffffff !important;
-        color: #000000 !important;
-        overflow: visible !important;
-        height: auto !important;
-        width: 100% !important;
+    .prose p {
+        color: #cbd5e1 !important;
+        font-size: 1.05rem !important;
+        line-height: 1.8 !important;
+        margin-bottom: 1.25rem !important;
     }
-    /* Hide layout navigation, sidebar, and non-printable elements */
-    header, aside, #lesson-workspace > aside, #subtopic-panel, #quiz-panel, #remediation-panel, #flashcard-panel, #floating-actions, #runner-drawer, #tutor-drawer, .no-print, #study-guide-modal-header {
-        display: none !important;
+
+    .prose ul,
+    .prose ol {
+        margin-bottom: 1.25rem !important;
+        padding-left: 1.5rem !important;
+        color: #cbd5e1 !important;
     }
-    #study-guide-modal {
-        position: static !important;
-        display: block !important;
-        background: transparent !important;
+
+    .prose li {
+        margin-bottom: 0.5rem !important;
+        line-height: 1.7 !important;
+    }
+
+    .prose pre {
+        background-color: #030712 !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 0.875rem !important;
+        padding: 1.15rem 1.35rem !important;
+        overflow-x: auto !important;
+        white-space: pre !important;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+        line-height: 1.55 !important;
+        margin: 1.25rem 0 !important;
+        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .prose code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+        background-color: rgba(30, 41, 59, 0.7) !important;
+        color: #38bdf8 !important;
+        padding: 0.2rem 0.45rem !important;
+        border-radius: 0.375rem !important;
+        font-size: 0.9em !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+
+    .prose pre code {
+        background-color: transparent !important;
+        color: #f1f5f9 !important;
         padding: 0 !important;
-        margin: 0 !important;
-        overflow: visible !important;
-        max-height: none !important;
-        height: auto !important;
-        width: 100% !important;
-    }
-    #study-guide-modal > div {
-        max-width: 100% !important;
-        max-height: none !important;
-        background: transparent !important;
         border: none !important;
-        box-shadow: none !important;
-        overflow: visible !important;
-        height: auto !important;
+        font-size: 0.925rem !important;
     }
-    #study-guide-content {
-        color: #111827 !important;
-        background: transparent !important;
-        max-height: none !important;
-        overflow: visible !important;
-        padding: 0 !important;
-        font-size: 11pt !important;
-        line-height: 1.6 !important;
-        height: auto !important;
-        display: block !important;
+
+    .prose blockquote {
+        border-left: 4px solid #6366f1 !important;
+        background: rgba(15, 23, 42, 0.6) !important;
+        border-radius: 0 0.75rem 0.75rem 0 !important;
+        padding: 0.875rem 1.25rem !important;
+        margin: 1.25rem 0 !important;
+        color: #94a3b8 !important;
+        font-style: normal !important;
     }
-    #study-guide-content h1, #study-guide-content h2, #study-guide-content h3 {
-        color: #1e1b4b !important;
-        page-break-after: avoid !important;
-    }
-    #study-guide-content pre {
-        background: #f8fafc !important;
-        color: #0f172a !important;
-        border: 1px solid #cbd5e1 !important;
-        page-break-inside: avoid !important;
-        font-size: 9.5pt !important;
-    }
-    #study-guide-content table {
-        color: #111827 !important;
-        border: 1px solid #cbd5e1 !important;
-        page-break-inside: avoid !important;
+
+    .prose table {
         width: 100% !important;
+        border-collapse: collapse !important;
+        margin: 1.5rem 0 !important;
+        border-radius: 0.75rem !important;
+        overflow: hidden !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
     }
-    #study-guide-content th {
-        background: #f1f5f9 !important;
-        color: #0f172a !important;
+
+    .prose th {
+        background: rgba(30, 41, 59, 0.8) !important;
+        color: #f8fafc !important;
+        padding: 0.75rem 1rem !important;
+        font-weight: 700 !important;
+        text-align: left !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
     }
-    #study-guide-content td {
-        border-bottom: 1px solid #e2e8f0 !important;
+
+    .prose td {
+        padding: 0.75rem 1rem !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+        color: #cbd5e1 !important;
     }
-}
+
+    .prose tr:nth-child(even) {
+        background: rgba(255, 255, 255, 0.02) !important;
+    }
+
+    .mermaid {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: rgba(11, 15, 25, 0.85);
+        border: 1px solid rgba(99, 102, 241, 0.25);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin: 1.75rem 0;
+        overflow-x: auto;
+    }
+
+    .mermaid svg {
+        max-width: 100%;
+        height: auto;
+    }
+
+    .perspective-1000 {
+        perspective: 1000px;
+    }
+
+    .transform-style-3d {
+        transform-style: preserve-3d;
+    }
+
+    .backface-hidden {
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+    }
+
+    .rotate-y-180 {
+        transform: rotateY(180deg);
+    }
+
+    .flashcard-flipped {
+        transform: rotateY(180deg);
+    }
+
+    @media print {
+
+        body,
+        html {
+            background: #ffffff !important;
+            color: #000000 !important;
+            overflow: visible !important;
+            height: auto !important;
+            width: 100% !important;
+        }
+
+        /* Hide layout navigation, sidebar, and non-printable elements */
+        header,
+        aside,
+        #lesson-workspace>aside,
+        #subtopic-panel,
+        #quiz-panel,
+        #remediation-panel,
+        #flashcard-panel,
+        #floating-actions,
+        #runner-drawer,
+        #tutor-drawer,
+        .no-print,
+        #study-guide-modal-header {
+            display: none !important;
+        }
+
+        #study-guide-modal {
+            position: static !important;
+            display: block !important;
+            background: transparent !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: visible !important;
+            max-height: none !important;
+            height: auto !important;
+            width: 100% !important;
+        }
+
+        #study-guide-modal>div {
+            max-width: 100% !important;
+            max-height: none !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            overflow: visible !important;
+            height: auto !important;
+        }
+
+        #study-guide-content {
+            color: #111827 !important;
+            background: transparent !important;
+            max-height: none !important;
+            overflow: visible !important;
+            padding: 0 !important;
+            font-size: 11pt !important;
+            line-height: 1.6 !important;
+            height: auto !important;
+            display: block !important;
+        }
+
+        #study-guide-content h1,
+        #study-guide-content h2,
+        #study-guide-content h3 {
+            color: #1e1b4b !important;
+            page-break-after: avoid !important;
+        }
+
+        #study-guide-content pre {
+            background: #f8fafc !important;
+            color: #0f172a !important;
+            border: 1px solid #cbd5e1 !important;
+            page-break-inside: avoid !important;
+            font-size: 9.5pt !important;
+        }
+
+        #study-guide-content table {
+            color: #111827 !important;
+            border: 1px solid #cbd5e1 !important;
+            page-break-inside: avoid !important;
+            width: 100% !important;
+        }
+
+        #study-guide-content th {
+            background: #f1f5f9 !important;
+            color: #0f172a !important;
+        }
+
+        #study-guide-content td {
+            border-bottom: 1px solid #e2e8f0 !important;
+        }
+    }
 </style>
 
 <div class="flex-grow flex h-[calc(100vh-73px)] overflow-hidden relative" id="lesson-workspace">
@@ -201,38 +244,46 @@
     <aside class="w-80 border-r border-white/10 bg-dark-800/40 p-6 flex flex-col h-full space-y-6 flex-shrink-0">
         <div>
             <div class="flex items-center space-x-2 flex-wrap gap-y-1">
-                <span class="text-xs font-bold uppercase tracking-wider bg-brand-500/10 text-brand-400 border border-brand-500/20 px-2.5 py-1 rounded-full">
+                <span
+                    class="text-xs font-bold uppercase tracking-wider bg-brand-500/10 text-brand-400 border border-brand-500/20 px-2.5 py-1 rounded-full">
                     {{ lesson.tier }}
                 </span>
-                <span class="text-xs font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2.5 py-1 rounded-full flex items-center space-x-1">
+                <span
+                    class="text-xs font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2.5 py-1 rounded-full flex items-center space-x-1">
                     <i data-lucide="clock" class="w-3 h-3 text-indigo-400"></i>
                     <span>50 Mins Masterclass</span>
                 </span>
             </div>
             <h1 class="text-xl font-bold text-white mt-3">{{ lesson.title }}</h1>
         </div>
-        
+
         <div class="flex-grow overflow-y-auto space-y-2" id="toc-container">
             {% for sec in sections %}
-                <button onclick="setActiveSection({{ loop.index0 }})" id="toc-btn-{{ loop.index0 }}" class="w-full flex items-center justify-between text-left p-3 rounded-xl border border-white/5 bg-dark-900/40 hover:bg-white/5 transition-all duration-200">
-                    <span class="text-sm font-semibold text-gray-300 truncate" id="toc-title-{{ loop.index0 }}">{{ sec.title }}</span>
-                    <div class="w-4 h-4 rounded-full border border-white/20 flex items-center justify-center flex-shrink-0 ml-2" id="toc-check-{{ loop.index0 }}">
-                        <!-- Check icon dynamically added when viewed -->
-                    </div>
-                </button>
+            <button onclick="setActiveSection({{ loop.index0 }})" id="toc-btn-{{ loop.index0 }}"
+                class="w-full flex items-center justify-between text-left p-3 rounded-xl border border-white/5 bg-dark-900/40 hover:bg-white/5 transition-all duration-200">
+                <span class="text-sm font-semibold text-gray-300 truncate" id="toc-title-{{ loop.index0 }}">{{ sec.title
+                    }}</span>
+                <div class="w-4 h-4 rounded-full border border-white/20 flex items-center justify-center flex-shrink-0 ml-2"
+                    id="toc-check-{{ loop.index0 }}">
+                    <!-- Check icon dynamically added when viewed -->
+                </div>
+            </button>
             {% endfor %}
-            
+
             <!-- Flashcards Review Tab -->
-            <button onclick="showFlashcardsSection()" id="toc-btn-flashcards" class="w-full flex items-center justify-between text-left p-3.5 rounded-xl border border-purple-500/20 bg-purple-500/10 hover:bg-purple-500/20 transition-all duration-200">
+            <button onclick="showFlashcardsSection()" id="toc-btn-flashcards"
+                class="w-full flex items-center justify-between text-left p-3.5 rounded-xl border border-purple-500/20 bg-purple-500/10 hover:bg-purple-500/20 transition-all duration-200">
                 <span class="text-sm font-bold text-purple-300 flex items-center space-x-1.5">
                     <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
                     <span>Flashcards & Review</span>
                 </span>
-                <span class="text-[10px] font-bold bg-purple-500/20 text-purple-200 border border-purple-500/30 px-1.5 py-0.5 rounded-full">Recall</span>
+                <span
+                    class="text-[10px] font-bold bg-purple-500/20 text-purple-200 border border-purple-500/30 px-1.5 py-0.5 rounded-full">Recall</span>
             </button>
 
             <!-- Final Quiz Unlock button -->
-            <button onclick="showQuizSection()" id="toc-btn-quiz" class="w-full flex items-center justify-between text-left p-3.5 rounded-xl border border-brand-500/20 bg-brand-500/10 hover:bg-brand-500/20 transition-all duration-200">
+            <button onclick="showQuizSection()" id="toc-btn-quiz"
+                class="w-full flex items-center justify-between text-left p-3.5 rounded-xl border border-brand-500/20 bg-brand-500/10 hover:bg-brand-500/20 transition-all duration-200">
                 <span class="text-sm font-bold text-brand-400 flex items-center space-x-1.5">
                     <i data-lucide="award" class="w-4 h-4"></i>
                     <span>Mastery Quiz</span>
@@ -241,7 +292,8 @@
             </button>
         </div>
 
-        <a href="{{ url_for('learning.roadmap_view', path_id=lesson.learning_path_id) }}" class="glass text-center font-semibold text-gray-300 py-3 rounded-xl transition flex items-center justify-center space-x-1.5 hover:bg-white/5">
+        <a href="{{ url_for('learning.roadmap_view', path_id=lesson.learning_path_id) }}"
+            class="glass text-center font-semibold text-gray-300 py-3 rounded-xl transition flex items-center justify-center space-x-1.5 hover:bg-white/5">
             <i data-lucide="arrow-left" class="w-4 h-4"></i>
             <span>Back to Roadmap</span>
         </a>
@@ -253,23 +305,39 @@
         <div class="w-full max-w-2xl space-y-8" id="subtopic-panel">
             <div class="flex items-center justify-between border-b border-white/10 pb-4">
                 <div>
-                    <span id="section-badge" class="text-xs font-bold uppercase tracking-wider text-brand-400">Section 1 of {{ sections|length }}</span>
-                    <h2 class="text-2xl md:text-3xl font-extrabold text-white mt-1" id="section-title">Subtopic Title</h2>
+                    <span id="section-badge" class="text-xs font-bold uppercase tracking-wider text-brand-400">Section 1
+                        of {{ sections|length }}</span>
+                    <h2 class="text-2xl md:text-3xl font-extrabold text-white mt-1" id="section-title">Subtopic Title
+                    </h2>
                 </div>
                 <div class="flex space-x-2 flex-wrap gap-y-2 items-center">
-                    <button type="button" onclick="openStudyGuideModal()" class="glass hover:bg-indigo-500/10 hover:border-indigo-500/30 text-indigo-300 px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer" title="View consolidated printable Study Guide & Cheat Sheet">
+                    <button type="button" onclick="openStudyGuideModal()"
+                        class="glass hover:bg-indigo-500/10 hover:border-indigo-500/30 text-indigo-300 px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer"
+                        title="View consolidated printable Study Guide & Cheat Sheet">
                         <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
                         <span>Study Guide</span>
                     </button>
-                    <a href="{{ url_for('learning.lesson_view', progress_id=lesson.id, regenerate='true') }}" onclick="return confirm('Regenerate this module with exhaustive 50-minute textbook depth?');" class="glass hover:bg-emerald-500/10 hover:border-emerald-500/30 text-emerald-300 px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer" title="Regenerate this lesson with exhaustive textbook-level depth">
+                    <a href="{{ url_for('learning.lesson_view', progress_id=lesson.id, regenerate='true') }}"
+                        onclick="return confirm('Regenerate this module with exhaustive 50-minute textbook depth?');"
+                        class="glass hover:bg-emerald-500/10 hover:border-emerald-500/30 text-emerald-300 px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer"
+                        title="Regenerate this lesson with exhaustive textbook-level depth">
                         <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
                         <span>Deep Upgrade</span>
                     </a>
-                    <button type="button" onclick="openTranslateModal()" class="glass hover:bg-amber-500/10 hover:border-amber-500/30 text-amber-300 px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer" title="Translate this entire lesson into your selected regional language">
+                    <button type="button" onclick="openTranslateModal()"
+                        class="glass hover:bg-amber-500/10 hover:border-amber-500/30 text-amber-300 px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer"
+                        title="Translate this entire lesson into your selected regional language">
                         <i data-lucide="languages" class="w-3.5 h-3.5"></i>
                         <span>Translate Lesson</span>
                     </button>
-                    <button type="button" onclick="askTutorAboutCurrentTopic()" class="glass hover:bg-brand-500/10 hover:border-brand-500/30 text-brand-300 px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer">
+                    <button type="button" id="lesson-listen-header-btn" onclick="toggleLessonListen()"
+                        class="glass hover:bg-brand-500/20 hover:border-brand-500/40 text-brand-300 px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer border border-brand-500/30 shadow-sm"
+                        title="Listen to this lesson in its translated language">
+                        <i data-lucide="volume-2" class="w-3.5 h-3.5 text-brand-400" id="listen-header-icon"></i>
+                        <span id="listen-header-text">Listen</span>
+                    </button>
+                    <button type="button" onclick="askTutorAboutCurrentTopic()"
+                        class="glass hover:bg-brand-500/10 hover:border-brand-500/30 text-brand-300 px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer">
                         <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
                         <span>Ask Diva AI</span>
                     </button>
@@ -277,7 +345,8 @@
             </div>
 
             <!-- Text Content -->
-            <div class="prose prose-invert max-w-none text-gray-300 leading-relaxed text-base md:text-lg space-y-4" id="section-markdown-content">
+            <div class="prose prose-invert max-w-none text-gray-300 leading-relaxed text-base md:text-lg space-y-4"
+                id="section-markdown-content">
                 <!-- Injected via marked -->
             </div>
 
@@ -285,38 +354,48 @@
             <div class="glass p-6 rounded-2xl border-brand-500/10 space-y-3" id="section-example-box">
                 <div class="flex items-center justify-between flex-wrap gap-2">
                     <div class="flex items-center space-x-2">
-                        <span class="text-xs font-bold uppercase tracking-wider text-brand-400 block">Worked Example</span>
-                        <button onclick="narrateWorkedExample()" class="bg-brand-600/15 hover:bg-brand-600/25 text-brand-300 border border-brand-500/20 px-2.5 py-0.5 rounded-lg text-xs font-semibold flex items-center space-x-1 transition cursor-pointer" title="Listen to code walkthrough in Diva Voice">
+                        <span class="text-xs font-bold uppercase tracking-wider text-brand-400 block">Worked
+                            Example</span>
+                        <button onclick="narrateWorkedExample()"
+                            class="bg-brand-600/15 hover:bg-brand-600/25 text-brand-300 border border-brand-500/20 px-2.5 py-0.5 rounded-lg text-xs font-semibold flex items-center space-x-1 transition cursor-pointer"
+                            title="Listen to code walkthrough in Diva Voice">
                             <i data-lucide="volume-2" class="w-3 h-3"></i>
                             <span>Listen</span>
                         </button>
                     </div>
-                    <button onclick="openRunnerWithExample()" class="bg-brand-600/20 hover:bg-brand-600/30 text-brand-300 border border-brand-500/30 px-3 py-1 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer">
+                    <button onclick="openRunnerWithExample()"
+                        class="bg-brand-600/20 hover:bg-brand-600/30 text-brand-300 border border-brand-500/30 px-3 py-1 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer">
                         <i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i>
                         <span>Run in Playground</span>
                     </button>
                 </div>
-                <div class="text-sm font-mono bg-dark-900/90 border border-white/5 p-4 rounded-xl text-emerald-300 overflow-x-auto" id="section-example-content">
+                <div class="text-sm font-mono bg-dark-900/90 border border-white/5 p-4 rounded-xl text-emerald-300 overflow-x-auto"
+                    id="section-example-content">
                     <!-- Example code/text -->
                 </div>
             </div>
 
             <!-- Module Practice MCQs (3 questions with choice for each module) -->
-            <div class="glass p-6 md:p-8 rounded-2xl border border-indigo-500/20 bg-indigo-950/15 space-y-6" id="section-mcq-box">
+            <div class="glass p-6 md:p-8 rounded-2xl border border-indigo-500/20 bg-indigo-950/15 space-y-6"
+                id="section-mcq-box">
                 <div class="flex items-center justify-between border-b border-white/10 pb-4">
                     <div class="flex items-center space-x-3">
-                        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-brand-500/20">
+                        <div
+                            class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-brand-500/20">
                             <i data-lucide="help-circle" class="w-5 h-5"></i>
                         </div>
                         <div>
                             <h3 class="text-base font-bold text-white flex items-center gap-2">
                                 <span>Module Practice</span>
-                                <span class="text-[10px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30 px-2 py-0.5 rounded-full uppercase tracking-wider">3 Questions</span>
+                                <span
+                                    class="text-[10px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30 px-2 py-0.5 rounded-full uppercase tracking-wider">3
+                                    Questions</span>
                             </h3>
                             <p class="text-xs text-gray-400">Test your comprehension of this topic before proceeding</p>
                         </div>
                     </div>
-                    <span id="mcq-status-badge" class="text-xs font-semibold px-3 py-1 rounded-full bg-brand-500/10 text-brand-300 border border-brand-500/20">
+                    <span id="mcq-status-badge"
+                        class="text-xs font-semibold px-3 py-1 rounded-full bg-brand-500/10 text-brand-300 border border-brand-500/20">
                         0 of 3 Answered
                     </span>
                 </div>
@@ -329,12 +408,14 @@
 
             <!-- Navigation Controls between Subtopics -->
             <div class="w-full pt-6 border-t border-white/10 flex items-center justify-between gap-4">
-                <button type="button" onclick="prevSection()" id="prev-sec-btn" class="glass hover:bg-white/5 text-gray-300 px-5 py-2.5 rounded-xl font-medium text-sm flex items-center space-x-2 transition">
+                <button type="button" onclick="prevSection()" id="prev-sec-btn"
+                    class="glass hover:bg-white/5 text-gray-300 px-5 py-2.5 rounded-xl font-medium text-sm flex items-center space-x-2 transition">
                     <i data-lucide="arrow-left" class="w-4 h-4"></i>
                     <span>Previous</span>
                 </button>
-                
-                <button type="button" onclick="nextSection()" id="next-sec-btn" class="bg-brand-600 hover:bg-brand-500 text-white font-semibold px-6 py-2.5 rounded-xl text-sm flex items-center space-x-2 transition shadow-lg shadow-brand-500/20">
+
+                <button type="button" onclick="nextSection()" id="next-sec-btn"
+                    class="bg-brand-600 hover:bg-brand-500 text-white font-semibold px-6 py-2.5 rounded-xl text-sm flex items-center space-x-2 transition shadow-lg shadow-brand-500/20">
                     <span id="next-sec-text">Next Section</span>
                     <i data-lucide="arrow-right" class="w-4 h-4" id="next-sec-icon"></i>
                 </button>
@@ -344,7 +425,8 @@
         <!-- Flashcard & Rapid Recall Container (hidden by default) -->
         <div class="w-full max-w-2xl space-y-8 hidden" id="flashcard-panel">
             <div class="text-center space-y-2">
-                <span class="text-xs font-bold uppercase tracking-wider bg-purple-500/10 text-purple-300 border border-purple-500/20 px-2.5 py-1 rounded-full">
+                <span
+                    class="text-xs font-bold uppercase tracking-wider bg-purple-500/10 text-purple-300 border border-purple-500/20 px-2.5 py-1 rounded-full">
                     Active Recall &bull; Flashcards
                 </span>
                 <h2 class="text-3xl font-extrabold text-white">Concept Flashcard Deck</h2>
@@ -352,40 +434,55 @@
             </div>
 
             <!-- Flashcard Card with 3D Flip -->
-            <div class="w-full h-80 cursor-pointer perspective-1000 group select-none" onclick="flipCurrentFlashcard()" id="flashcard-card-wrapper">
-                <div class="relative w-full h-full transition-transform duration-500 transform-style-3d shadow-2xl rounded-2xl" id="flashcard-inner">
+            <div class="w-full h-80 cursor-pointer perspective-1000 group select-none" onclick="flipCurrentFlashcard()"
+                id="flashcard-card-wrapper">
+                <div class="relative w-full h-full transition-transform duration-500 transform-style-3d shadow-2xl rounded-2xl"
+                    id="flashcard-inner">
                     <!-- Front (Term / Question) -->
-                    <div class="absolute inset-0 w-full h-full glass rounded-2xl border border-white/10 p-8 flex flex-col justify-between backface-hidden bg-gradient-to-br from-dark-900/95 via-indigo-950/40 to-dark-950/95">
+                    <div
+                        class="absolute inset-0 w-full h-full glass rounded-2xl border border-white/10 p-8 flex flex-col justify-between backface-hidden bg-gradient-to-br from-dark-900/95 via-indigo-950/40 to-dark-950/95">
                         <div class="flex items-center justify-between">
-                            <span class="text-xs font-mono font-semibold text-brand-400" id="card-index-indicator">Card 1 of 5</span>
-                            <span class="text-xs text-gray-500 flex items-center gap-1"><i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i> Click to flip</span>
+                            <span class="text-xs font-mono font-semibold text-brand-400" id="card-index-indicator">Card
+                                1 of 5</span>
+                            <span class="text-xs text-gray-500 flex items-center gap-1"><i data-lucide="rotate-cw"
+                                    class="w-3.5 h-3.5"></i> Click to flip</span>
                         </div>
                         <div class="text-center space-y-3 my-auto">
-                            <span class="text-xs font-bold uppercase tracking-wider text-indigo-400" id="card-front-category">KEY CONCEPT</span>
-                            <h3 class="text-2xl font-bold text-white leading-snug" id="card-front-text">Concept Question</h3>
+                            <span class="text-xs font-bold uppercase tracking-wider text-indigo-400"
+                                id="card-front-category">KEY CONCEPT</span>
+                            <h3 class="text-2xl font-bold text-white leading-snug" id="card-front-text">Concept Question
+                            </h3>
                         </div>
                         <div class="text-center text-xs text-gray-500 flex items-center justify-center gap-1.5">
                             <i data-lucide="help-circle" class="w-3.5 h-3.5 text-indigo-400"></i>
                             <span>Tap to reveal explanation & syntax</span>
                         </div>
                     </div>
-                    
+
                     <!-- Back (Definition / Solution) -->
-                    <div class="absolute inset-0 w-full h-full glass rounded-2xl border border-brand-500/30 p-8 flex flex-col justify-between backface-hidden rotate-y-180 bg-gradient-to-br from-indigo-950/70 via-dark-900/95 to-brand-950/50">
+                    <div
+                        class="absolute inset-0 w-full h-full glass rounded-2xl border border-brand-500/30 p-8 flex flex-col justify-between backface-hidden rotate-y-180 bg-gradient-to-br from-indigo-950/70 via-dark-900/95 to-brand-950/50">
                         <div class="flex items-center justify-between">
-                            <span class="text-xs font-semibold text-emerald-400 flex items-center gap-1"><i data-lucide="check" class="w-3.5 h-3.5"></i> Explanation & Solution</span>
-                            <span class="text-xs text-gray-400 flex items-center gap-1"><i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Flip back</span>
+                            <span class="text-xs font-semibold text-emerald-400 flex items-center gap-1"><i
+                                    data-lucide="check" class="w-3.5 h-3.5"></i> Explanation & Solution</span>
+                            <span class="text-xs text-gray-400 flex items-center gap-1"><i data-lucide="rotate-ccw"
+                                    class="w-3.5 h-3.5"></i> Flip back</span>
                         </div>
                         <div class="overflow-y-auto max-h-44 text-left space-y-2 pr-2">
                             <p class="text-sm text-gray-200 leading-relaxed" id="card-back-text">Explanation content</p>
-                            <pre class="text-xs font-mono bg-dark-950/90 border border-white/10 p-2.5 rounded-lg text-emerald-300 overflow-x-auto hidden" id="card-back-code"></pre>
+                            <pre class="text-xs font-mono bg-dark-950/90 border border-white/10 p-2.5 rounded-lg text-emerald-300 overflow-x-auto hidden"
+                                id="card-back-code"></pre>
                         </div>
                         <div class="flex items-center justify-between pt-3 border-t border-white/10">
                             <span class="text-[11px] text-gray-400">Rate Understanding:</span>
                             <div class="flex items-center space-x-2">
-                                <button type="button" onclick="rateCurrentCard('hard', event)" class="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-xs font-semibold transition">Review</button>
-                                <button type="button" onclick="rateCurrentCard('good', event)" class="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-semibold transition">Good</button>
-                                <button type="button" onclick="rateCurrentCard('mastered', event)" class="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition flex items-center gap-1"><i data-lucide="sparkles" class="w-3 h-3"></i> Mastered (+10 XP)</button>
+                                <button type="button" onclick="rateCurrentCard('hard', event)"
+                                    class="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-xs font-semibold transition">Review</button>
+                                <button type="button" onclick="rateCurrentCard('good', event)"
+                                    class="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-semibold transition">Good</button>
+                                <button type="button" onclick="rateCurrentCard('mastered', event)"
+                                    class="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition flex items-center gap-1"><i
+                                        data-lucide="sparkles" class="w-3 h-3"></i> Mastered (+10 XP)</button>
                             </div>
                         </div>
                     </div>
@@ -394,14 +491,16 @@
 
             <!-- Card Navigation Controls -->
             <div class="flex items-center justify-between gap-4 pt-2">
-                <button type="button" onclick="prevFlashcard()" id="card-prev-btn" class="glass hover:bg-white/5 text-gray-300 px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
+                <button type="button" onclick="prevFlashcard()" id="card-prev-btn"
+                    class="glass hover:bg-white/5 text-gray-300 px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
                     <i data-lucide="arrow-left" class="w-4 h-4"></i>
                     <span>Previous</span>
                 </button>
                 <div class="flex items-center space-x-1.5" id="card-dots-container">
                     <!-- Dynamic dots -->
                 </div>
-                <button type="button" onclick="nextFlashcard()" id="card-next-btn" class="bg-brand-600 hover:bg-brand-500 text-white px-5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shadow-lg shadow-brand-500/20">
+                <button type="button" onclick="nextFlashcard()" id="card-next-btn"
+                    class="bg-brand-600 hover:bg-brand-500 text-white px-5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shadow-lg shadow-brand-500/20">
                     <span>Next Card</span>
                     <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </button>
@@ -411,7 +510,8 @@
         <!-- Quiz Container (hidden by default) -->
         <div class="w-full max-w-2xl space-y-8 hidden" id="quiz-panel">
             <div class="text-center space-y-2">
-                <span class="text-xs font-bold uppercase tracking-wider bg-brand-500/10 text-brand-400 border border-brand-500/20 px-2.5 py-1 rounded-full">
+                <span
+                    class="text-xs font-bold uppercase tracking-wider bg-brand-500/10 text-brand-400 border border-brand-500/20 px-2.5 py-1 rounded-full">
                     Mastery check
                 </span>
                 <h2 class="text-3xl font-extrabold text-white">Concept Evaluation</h2>
@@ -423,7 +523,8 @@
                 <!-- Dynamic questions -->
             </div>
 
-            <button onclick="submitQuiz()" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-semibold py-4 rounded-xl shadow-lg transition">
+            <button onclick="submitQuiz()"
+                class="w-full bg-brand-600 hover:bg-brand-500 text-white font-semibold py-4 rounded-xl shadow-lg transition">
                 Submit Answers
             </button>
         </div>
@@ -438,7 +539,8 @@
                 <div class="prose prose-invert max-w-none text-gray-300" id="remediation-text">
                     <!-- Remediation markdown -->
                 </div>
-                <button onclick="startRetry()" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-semibold py-4.5 rounded-xl shadow-lg transition">
+                <button onclick="startRetry()"
+                    class="w-full bg-rose-600 hover:bg-rose-500 text-white font-semibold py-4.5 rounded-xl shadow-lg transition">
                     Retry Practice Quiz
                 </button>
             </div>
@@ -448,29 +550,38 @@
     <!-- RIGHT PANEL: Floating Action Buttons (Cleanly hides when drawers open) -->
     <div id="floating-actions" class="fixed right-6 bottom-6 z-40 flex flex-col space-y-3 transition-all duration-300">
         <!-- Code Runner Toggle -->
-        <button onclick="toggleRunnerDrawer()" class="w-13 h-13 p-3.5 rounded-full bg-gradient-to-tr from-brand-600 via-blue-600 to-indigo-600 hover:scale-110 shadow-xl shadow-brand-500/25 flex items-center justify-center text-white transition-all duration-300 cursor-pointer" title="Code Runner Playground">
+        <button onclick="toggleRunnerDrawer()"
+            class="w-13 h-13 p-3.5 rounded-full bg-gradient-to-tr from-brand-600 via-blue-600 to-indigo-600 hover:scale-110 shadow-xl shadow-brand-500/25 flex items-center justify-center text-white transition-all duration-300 cursor-pointer"
+            title="Code Runner Playground">
             <i data-lucide="terminal" class="w-6 h-6"></i>
         </button>
         <!-- AI Tutor Toggle -->
-        <button onclick="toggleTutorDrawer()" class="w-13 h-13 p-3.5 rounded-full bg-gradient-to-tr from-brand-600 to-indigo-600 hover:scale-110 shadow-xl shadow-brand-500/25 flex items-center justify-center text-white transition-all duration-300 cursor-pointer relative" title="Diva AI Voice Tutor">
+        <button onclick="toggleTutorDrawer()"
+            class="w-13 h-13 p-3.5 rounded-full bg-gradient-to-tr from-brand-600 to-indigo-600 hover:scale-110 shadow-xl shadow-brand-500/25 flex items-center justify-center text-white transition-all duration-300 cursor-pointer relative"
+            title="Diva AI Voice Tutor">
             <i data-lucide="message-square" class="w-6 h-6" id="tutor-toggle-icon"></i>
-            <span class="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-brand-400 border-2 border-dark-950 flex items-center justify-center">
+            <span
+                class="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-brand-400 border-2 border-dark-950 flex items-center justify-center">
                 <i data-lucide="mic" class="w-2 h-2 text-dark-950"></i>
             </span>
         </button>
     </div>
 
     <!-- Code Runner Slide-Over Drawer -->
-    <aside class="w-[520px] max-w-[95vw] border-l border-white/10 bg-[#0e1322]/98 backdrop-blur-xl p-5 flex flex-col h-[calc(100vh-73px)] space-y-4 fixed right-0 top-[73px] bottom-0 z-50 translate-x-full transition-all duration-300 shadow-2xl" id="runner-drawer">
+    <aside
+        class="w-[520px] max-w-[95vw] border-l border-white/10 bg-[#0e1322]/98 backdrop-blur-xl p-5 flex flex-col h-[calc(100vh-73px)] space-y-4 fixed right-0 top-[73px] bottom-0 z-50 translate-x-full transition-all duration-300 shadow-2xl"
+        id="runner-drawer">
         <div class="flex items-center justify-between border-b border-white/10 pb-3 flex-shrink-0">
             <div class="flex items-center space-x-2">
-                <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-brand-500/20">
+                <div
+                    class="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-brand-500/20">
                     <i data-lucide="terminal" class="w-4 h-4 text-white"></i>
                 </div>
                 <h3 class="text-sm font-bold text-white">Interactive Runner</h3>
             </div>
             <div class="flex items-center space-x-2">
-                <select id="drawer-lang-select" class="bg-dark-900 border border-white/10 text-xs text-white rounded-lg px-2.5 py-1 focus:outline-none focus:border-brand-500">
+                <select id="drawer-lang-select"
+                    class="bg-dark-900 border border-white/10 text-xs text-white rounded-lg px-2.5 py-1 focus:outline-none focus:border-brand-500">
                     <option value="python">Python 3</option>
                     <option value="javascript">JavaScript</option>
                     <option value="typescript">TypeScript</option>
@@ -481,7 +592,9 @@
                     <option value="go">Go</option>
                     <option value="sql">SQL</option>
                 </select>
-                <button onclick="toggleRunnerDrawer()" class="w-8 h-8 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition" title="Close">
+                <button onclick="toggleRunnerDrawer()"
+                    class="w-8 h-8 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition"
+                    title="Close">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
@@ -491,117 +604,156 @@
         <div class="flex flex-col space-y-2 flex-grow min-h-[160px] max-h-[45%]">
             <div class="flex items-center justify-between text-xs text-gray-400">
                 <span>Code Editor</span>
-                <button onclick="runDrawerCode()" id="drawer-run-btn" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1 rounded-lg text-xs flex items-center space-x-1 transition shadow">
+                <button onclick="runDrawerCode()" id="drawer-run-btn"
+                    class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1 rounded-lg text-xs flex items-center space-x-1 transition shadow">
                     <i data-lucide="play" class="w-3.5 h-3.5 fill-current" id="drawer-run-icon"></i>
                     <span id="drawer-run-text">Run</span>
                 </button>
             </div>
-            <textarea id="drawer-code-editor" class="w-full flex-grow bg-[#030712] border border-white/10 rounded-xl p-3 text-xs font-mono text-emerald-300 resize-none focus:outline-none focus:border-emerald-500 leading-5 code-theme" style="background-color: #030712 !important; color: #34d399 !important;" placeholder="Enter code..."></textarea>
+            <textarea id="drawer-code-editor"
+                class="w-full flex-grow bg-[#030712] border border-white/10 rounded-xl p-3 text-xs font-mono text-emerald-300 resize-none focus:outline-none focus:border-emerald-500 leading-5 code-theme"
+                style="background-color: #030712 !important; color: #34d399 !important;"
+                placeholder="Enter code..."></textarea>
         </div>
 
         <!-- Stdin Input (Collapsible) -->
         <div class="space-y-1">
             <details class="text-xs text-gray-400 cursor-pointer">
                 <summary class="hover:text-white font-semibold">Standard Input (stdin)</summary>
-                <textarea id="drawer-stdin" rows="2" class="w-full bg-[#0b0f19] border border-white/10 rounded-lg p-2 text-xs font-mono text-gray-300 focus:outline-none focus:border-brand-500 mt-1" style="background-color: #0b0f19 !important;" placeholder="Inputs for stdin..."></textarea>
+                <textarea id="drawer-stdin" rows="2"
+                    class="w-full bg-[#0b0f19] border border-white/10 rounded-lg p-2 text-xs font-mono text-gray-300 focus:outline-none focus:border-brand-500 mt-1"
+                    style="background-color: #0b0f19 !important;" placeholder="Inputs for stdin..."></textarea>
             </details>
         </div>
 
         <!-- Console Output Area -->
-        <div class="flex flex-col flex-grow min-h-[160px] max-h-[40%] bg-[#030712] border border-white/10 rounded-xl p-3 space-y-2 overflow-hidden" style="background-color: #030712 !important;">
-            <div class="flex items-center justify-between text-xs text-gray-400 border-b border-white/5 pb-1 flex-shrink-0">
+        <div class="flex flex-col flex-grow min-h-[160px] max-h-[40%] bg-[#030712] border border-white/10 rounded-xl p-3 space-y-2 overflow-hidden"
+            style="background-color: #030712 !important;">
+            <div
+                class="flex items-center justify-between text-xs text-gray-400 border-b border-white/5 pb-1 flex-shrink-0">
                 <span class="font-semibold uppercase tracking-wider">Console Output</span>
                 <div class="flex items-center space-x-2">
                     <span id="drawer-time-badge" class="text-[10px] font-mono text-gray-500"></span>
-                    <button onclick="document.getElementById('drawer-output').innerText = '';" class="hover:text-white" title="Clear"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+                    <button onclick="document.getElementById('drawer-output').innerText = '';" class="hover:text-white"
+                        title="Clear"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
                 </div>
             </div>
-            <div id="drawer-output" class="flex-grow font-mono text-xs text-gray-300 whitespace-pre-wrap overflow-y-auto leading-relaxed">
-<span class="text-gray-500">Press "Run" to execute your code snippet.</span>
+            <div id="drawer-output"
+                class="flex-grow font-mono text-xs text-gray-300 whitespace-pre-wrap overflow-y-auto leading-relaxed">
+                <span class="text-gray-500">Press "Run" to execute your code snippet.</span>
             </div>
             <div id="drawer-ai-error" class="hidden pt-1 border-t border-rose-500/20">
-                <button onclick="explainDrawerError()" id="drawer-explain-btn" class="w-full bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-[11px] font-semibold py-1 rounded-lg flex items-center justify-center space-x-1.5 transition">
+                <button onclick="explainDrawerError()" id="drawer-explain-btn"
+                    class="w-full bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-[11px] font-semibold py-1 rounded-lg flex items-center justify-center space-x-1.5 transition">
                     <i data-lucide="sparkles" class="w-3 h-3"></i>
                     <span>Explain Error with AI</span>
                 </button>
-                <div id="drawer-ai-explanation" class="hidden text-[11px] text-gray-200 prose prose-invert max-w-none pt-2 max-h-32 overflow-y-auto"></div>
+                <div id="drawer-ai-explanation"
+                    class="hidden text-[11px] text-gray-200 prose prose-invert max-w-none pt-2 max-h-32 overflow-y-auto">
+                </div>
             </div>
         </div>
     </aside>
 
     <!-- AI Tutor Drawer with Voice Chat & Voice Chart -->
-    <aside class="w-[400px] max-w-[95vw] border-l border-white/10 bg-[#0e1322]/98 backdrop-blur-xl p-5 flex flex-col h-[calc(100vh-73px)] space-y-3 fixed right-0 top-[73px] bottom-0 z-50 translate-x-full transition-all duration-300 shadow-2xl" id="tutor-drawer">
+    <aside
+        class="w-[400px] max-w-[95vw] border-l border-white/10 bg-[#0e1322]/98 backdrop-blur-xl p-5 flex flex-col h-[calc(100vh-73px)] space-y-3 fixed right-0 top-[73px] bottom-0 z-50 translate-x-full transition-all duration-300 shadow-2xl"
+        id="tutor-drawer">
         <div class="flex items-center justify-between border-b border-white/10 pb-3 flex-shrink-0">
             <div class="flex items-center space-x-2.5">
-                <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-brand-500/20">
+                <div
+                    class="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-brand-500/20">
                     <i data-lucide="sparkles" class="w-4 h-4 text-white"></i>
                 </div>
                 <div>
                     <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
                         <span>Diva AI Tutor</span>
-                        <span id="voice-mode-badge" class="text-[9px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30 px-1.5 py-0.5 rounded-full uppercase tracking-wider">Voice Ready</span>
+                        <span id="voice-mode-badge"
+                            class="text-[9px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30 px-1.5 py-0.5 rounded-full uppercase tracking-wider">Voice
+                            Ready</span>
                     </h3>
-                    <p class="text-[11px] text-emerald-400 font-medium flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse"></span> RAG Context Active</p>
+                    <p class="text-[11px] text-emerald-400 font-medium flex items-center gap-1"><span
+                            class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse"></span> RAG
+                        Context Active</p>
                 </div>
             </div>
             <div class="flex items-center space-x-1.5">
                 <!-- TTS Voice Reading Toggle -->
-                <button onclick="toggleVoiceTTS()" id="tutor-tts-toggle" class="w-8 h-8 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 flex items-center justify-center transition border border-brand-500/20" title="Voice Read Aloud (Enabled)">
+                <button onclick="toggleVoiceTTS()" id="tutor-tts-toggle"
+                    class="w-8 h-8 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 flex items-center justify-center transition border border-brand-500/20"
+                    title="Voice Read Aloud (Enabled)">
                     <i data-lucide="volume-2" class="w-4 h-4" id="tts-toggle-icon"></i>
                 </button>
                 <!-- Voice Chart / Waveform Panel Toggle -->
-                <button onclick="toggleVoiceChartPanel()" id="tutor-chart-toggle" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-indigo-300 flex items-center justify-center transition border border-white/10" title="Toggle Live Voice Chart & Visualizer">
+                <button onclick="toggleVoiceChartPanel()" id="tutor-chart-toggle"
+                    class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-indigo-300 flex items-center justify-center transition border border-white/10"
+                    title="Toggle Live Voice Chart & Visualizer">
                     <i data-lucide="activity" class="w-4 h-4"></i>
                 </button>
                 <!-- Close Button -->
-                <button onclick="toggleTutorDrawer()" class="w-8 h-8 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition" title="Close">
+                <button onclick="toggleTutorDrawer()"
+                    class="w-8 h-8 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition"
+                    title="Close">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
         </div>
 
         <!-- Live Voice Chart / Audio Frequency Visualizer Box & Narration Controller -->
-        <div id="voice-chart-panel" class="glass rounded-2xl p-3.5 border border-brand-500/30 bg-gradient-to-b from-brand-950/50 via-dark-950/70 to-dark-950/95 shadow-xl shadow-brand-950/30 space-y-3 flex-shrink-0 transition-all duration-300">
+        <div id="voice-chart-panel"
+            class="glass rounded-2xl p-3.5 border border-brand-500/30 bg-gradient-to-b from-brand-950/50 via-dark-950/70 to-dark-950/95 shadow-xl shadow-brand-950/30 space-y-3 flex-shrink-0 transition-all duration-300">
             <!-- Header with Status & Language Selector -->
             <div class="flex items-center justify-between text-xs gap-2">
                 <div class="flex items-center space-x-2">
                     <span class="relative flex h-2.5 w-2.5">
-                        <span id="voice-status-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
-                        <span id="voice-status-dot" class="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-500 shadow-sm shadow-brand-400"></span>
+                        <span id="voice-status-ping"
+                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
+                        <span id="voice-status-dot"
+                            class="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-500 shadow-sm shadow-brand-400"></span>
                     </span>
-                    <span id="voice-status-text" class="font-bold text-brand-200 text-xs tracking-wide truncate">Voice Ready</span>
+                    <span id="voice-status-text" class="font-bold text-brand-200 text-xs tracking-wide truncate">Voice
+                        Ready</span>
                 </div>
-                
+
                 <!-- Dynamic Language Indicator & Selector Badge -->
                 <div class="relative flex-shrink-0">
-                    <button id="tutor-lang-badge-btn" onclick="toggleLanguageMenu()" class="flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-brand-500/15 hover:bg-brand-500/25 border border-brand-500/30 text-brand-200 hover:text-white text-[11px] font-bold transition shadow-sm cursor-pointer" title="Language: Click to change">
+                    <button id="tutor-lang-badge-btn" onclick="toggleLanguageMenu()"
+                        class="flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-brand-500/15 hover:bg-brand-500/25 border border-brand-500/30 text-brand-200 hover:text-white text-[11px] font-bold transition shadow-sm cursor-pointer"
+                        title="Language: Click to change">
                         <span id="tutor-lang-flag" class="text-xs">🇬🇧</span>
                         <span id="tutor-lang-name" class="tracking-wide">English</span>
                         <i data-lucide="chevron-down" class="w-3 h-3 text-brand-300"></i>
                     </button>
                     <!-- Language Selection Popup Menu -->
-                    <div id="tutor-lang-menu" class="hidden absolute right-0 top-full mt-1.5 w-44 bg-[#0a0f1d]/95 backdrop-blur-xl border border-brand-500/30 rounded-xl p-1.5 shadow-2xl z-50 space-y-0.5">
-                        <button onclick="setTutorLanguage('English')" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-200 hover:bg-brand-500/20 hover:text-white flex items-center justify-between transition cursor-pointer">
+                    <div id="tutor-lang-menu"
+                        class="hidden absolute right-0 top-full mt-1.5 w-44 bg-[#0a0f1d]/95 backdrop-blur-xl border border-brand-500/30 rounded-xl p-1.5 shadow-2xl z-50 space-y-0.5">
+                        <button onclick="setTutorLanguage('English')"
+                            class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-200 hover:bg-brand-500/20 hover:text-white flex items-center justify-between transition cursor-pointer">
                             <span>🇬🇧 English</span>
                             <span class="text-[10px] text-gray-400 font-mono">EN</span>
                         </button>
-                        <button onclick="setTutorLanguage('Tamil')" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-200 hover:bg-brand-500/20 hover:text-white flex items-center justify-between transition cursor-pointer">
+                        <button onclick="setTutorLanguage('Tamil')"
+                            class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-200 hover:bg-brand-500/20 hover:text-white flex items-center justify-between transition cursor-pointer">
                             <span>🇮🇳 தமிழ்</span>
                             <span class="text-[10px] text-brand-300 font-semibold">Tamil</span>
                         </button>
-                        <button onclick="setTutorLanguage('Telugu')" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-200 hover:bg-brand-500/20 hover:text-white flex items-center justify-between transition cursor-pointer">
+                        <button onclick="setTutorLanguage('Telugu')"
+                            class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-200 hover:bg-brand-500/20 hover:text-white flex items-center justify-between transition cursor-pointer">
                             <span>🇮🇳 తెలుగు</span>
                             <span class="text-[10px] text-brand-300 font-semibold">Telugu</span>
                         </button>
-                        <button onclick="setTutorLanguage('Bengali')" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-200 hover:bg-brand-500/20 hover:text-white flex items-center justify-between transition cursor-pointer">
+                        <button onclick="setTutorLanguage('Bengali')"
+                            class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-200 hover:bg-brand-500/20 hover:text-white flex items-center justify-between transition cursor-pointer">
                             <span>🇮🇳 বাংলা</span>
                             <span class="text-[10px] text-brand-300 font-semibold">Bengali</span>
                         </button>
-                        <button onclick="setTutorLanguage('Hindi')" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-200 hover:bg-brand-500/20 hover:text-white flex items-center justify-between transition cursor-pointer">
+                        <button onclick="setTutorLanguage('Hindi')"
+                            class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-200 hover:bg-brand-500/20 hover:text-white flex items-center justify-between transition cursor-pointer">
                             <span>🇮🇳 हिंदी</span>
                             <span class="text-[10px] text-brand-300 font-semibold">Hindi</span>
                         </button>
-                        <button onclick="setTutorLanguage('Marathi')" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-200 hover:bg-brand-500/20 hover:text-white flex items-center justify-between transition cursor-pointer">
+                        <button onclick="setTutorLanguage('Marathi')"
+                            class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-200 hover:bg-brand-500/20 hover:text-white flex items-center justify-between transition cursor-pointer">
                             <span>🇮🇳 मराठी</span>
                             <span class="text-[10px] text-brand-300 font-semibold">Marathi</span>
                         </button>
@@ -610,40 +762,21 @@
             </div>
 
             <!-- Live Audio Frequency / Waveform Chart Canvas -->
-            <div class="relative w-full h-12 rounded-xl overflow-hidden bg-dark-950/90 border border-white/10 p-1 flex flex-col justify-between shadow-inner">
+            <div
+                class="relative w-full h-12 rounded-xl overflow-hidden bg-dark-950/90 border border-white/10 p-1 flex flex-col justify-between shadow-inner">
                 <canvas id="voice-chart-canvas" width="360" height="42" class="w-full h-full block rounded-lg"></canvas>
-                <div class="flex items-center justify-between px-1.5 pb-0.5 text-[8px] font-mono text-gray-500 border-t border-white/5 pointer-events-none select-none">
+                <div
+                    class="flex items-center justify-between px-1.5 pb-0.5 text-[8px] font-mono text-gray-500 border-t border-white/5 pointer-events-none select-none">
                     <span>60Hz</span>
                     <span>250Hz</span>
                     <span>1kHz</span>
                     <span>4kHz</span>
                     <span>16kHz</span>
                 </div>
-                <span id="player-live-sentence" class="absolute inset-0 flex items-center justify-center px-3 bg-dark-950/85 backdrop-blur-sm text-[11px] text-brand-200 truncate pointer-events-none hidden font-medium text-center"></span>
+                <span id="player-live-sentence"
+                    class="absolute inset-0 flex items-center justify-center px-3 bg-dark-950/85 backdrop-blur-sm text-[11px] text-brand-200 truncate pointer-events-none hidden font-medium text-center"></span>
             </div>
 
-            <!-- Section Audio Player Action Button & Speed Controls -->
-            <div class="flex items-center justify-between pt-1 border-t border-white/5 gap-2">
-                <!-- Listen to Section Button -->
-                <button id="player-play-btn" onclick="toggleSectionNarration()" class="flex-grow bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold text-xs px-3 py-1.5 rounded-xl shadow-md shadow-brand-500/25 flex items-center justify-center space-x-1.5 transition active:scale-95 cursor-pointer truncate">
-                    <i data-lucide="play" class="w-3.5 h-3.5 fill-current" id="player-play-icon"></i>
-                    <span id="player-play-text">Listen to Section</span>
-                </button>
-
-                <!-- Stop Button (Visible when speaking) -->
-                <button id="voice-stop-btn" onclick="stopAllSpeech()" class="hidden flex-shrink-0 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 font-semibold text-xs px-2.5 py-1.5 rounded-xl flex items-center space-x-1 transition cursor-pointer" title="Stop Audio">
-                    <i data-lucide="square" class="w-3 h-3 fill-current"></i>
-                    <span>Stop</span>
-                </button>
-
-                <!-- Voice Speed Selector -->
-                <div class="flex items-center space-x-0.5 flex-shrink-0" id="voice-speed-selector">
-                    <button type="button" onclick="setVoiceSpeed(0.85, this)" class="px-1.5 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-gray-400 font-mono text-[10px] transition">0.8x</button>
-                    <button type="button" onclick="setVoiceSpeed(1.0, this)" class="px-1.5 py-0.5 rounded-md bg-brand-500/20 text-brand-300 border border-brand-500/30 font-mono font-bold text-[10px] transition">1.0x</button>
-                    <button type="button" onclick="setVoiceSpeed(1.25, this)" class="px-1.5 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-gray-400 font-mono text-[10px] transition">1.25x</button>
-                    <button type="button" onclick="setVoiceSpeed(1.5, this)" class="px-1.5 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-gray-400 font-mono text-[10px] transition">1.5x</button>
-                </div>
-            </div>
         </div>
 
         <!-- Chat History -->
@@ -653,22 +786,32 @@
                     <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
                     <span>Diva AI</span>
                 </div>
-                <p>Hello! I am <strong>Diva</strong>, your personal AI computer science tutor. You can speak to me directly using the <strong>Microphone (🎙️)</strong> button or type below. Ask me anything about <strong>{{ lesson.title }}</strong>!</p>
+                <p>Hello! I am <strong>Diva</strong>, your personal AI computer science tutor. You can speak to me
+                    directly using the <strong>Microphone (🎙️)</strong> button or type below. Ask me anything about
+                    <strong>{{ lesson.title }}</strong>!</p>
             </div>
         </div>
 
         <!-- Quick Action Presets -->
         <div class="grid grid-cols-4 gap-1.5 flex-shrink-0">
-            <button onclick="sendQuickAction('simplify')" class="glass hover:bg-brand-500/20 text-[11px] font-semibold text-gray-300 hover:text-brand-300 py-1.5 px-1 rounded-lg truncate text-center transition border border-white/5 hover:border-brand-500/30" title="Explain Like I'm 5">
+            <button onclick="sendQuickAction('simplify')"
+                class="glass hover:bg-brand-500/20 text-[11px] font-semibold text-gray-300 hover:text-brand-300 py-1.5 px-1 rounded-lg truncate text-center transition border border-white/5 hover:border-brand-500/30"
+                title="Explain Like I'm 5">
                 🐣 ELI5
             </button>
-            <button onclick="sendQuickAction('code_breakdown')" class="glass hover:bg-brand-500/20 text-[11px] font-semibold text-gray-300 hover:text-brand-300 py-1.5 px-1 rounded-lg truncate text-center transition border border-white/5 hover:border-brand-500/30" title="Show Code Walkthrough">
+            <button onclick="sendQuickAction('code_breakdown')"
+                class="glass hover:bg-brand-500/20 text-[11px] font-semibold text-gray-300 hover:text-brand-300 py-1.5 px-1 rounded-lg truncate text-center transition border border-white/5 hover:border-brand-500/30"
+                title="Show Code Walkthrough">
                 💻 Code
             </button>
-            <button onclick="sendQuickAction('quiz_me')" class="glass hover:bg-brand-500/20 text-[11px] font-semibold text-gray-300 hover:text-brand-300 py-1.5 px-1 rounded-lg truncate text-center transition border border-white/5 hover:border-brand-500/30" title="Socratic Quiz Check">
+            <button onclick="sendQuickAction('quiz_me')"
+                class="glass hover:bg-brand-500/20 text-[11px] font-semibold text-gray-300 hover:text-brand-300 py-1.5 px-1 rounded-lg truncate text-center transition border border-white/5 hover:border-brand-500/30"
+                title="Socratic Quiz Check">
                 🎯 Quiz Me
             </button>
-            <button onclick="sendQuickAction('enterprise_example')" class="glass hover:bg-brand-500/20 text-[11px] font-semibold text-gray-300 hover:text-brand-300 py-1.5 px-1 rounded-lg truncate text-center transition border border-white/5 hover:border-brand-500/30" title="Production Architecture">
+            <button onclick="sendQuickAction('enterprise_example')"
+                class="glass hover:bg-brand-500/20 text-[11px] font-semibold text-gray-300 hover:text-brand-300 py-1.5 px-1 rounded-lg truncate text-center transition border border-white/5 hover:border-brand-500/30"
+                title="Production Architecture">
                 🏢 Prod Scale
             </button>
         </div>
@@ -676,27 +819,38 @@
         <!-- Input Box with Mic, Textarea and Send -->
         <div class="flex items-center gap-2 pt-2 border-t border-white/10 flex-shrink-0">
             <!-- Voice Input Button (Mic) -->
-            <button onclick="toggleSpeechRecognition()" id="tutor-mic-btn" class="w-10 h-10 rounded-xl bg-dark-900 hover:bg-brand-600/20 border border-white/10 hover:border-brand-500/40 text-gray-300 hover:text-brand-400 transition flex items-center justify-center relative flex-shrink-0 shadow-sm" title="Click to Speak (Voice Input)">
+            <button onclick="toggleSpeechRecognition()" id="tutor-mic-btn"
+                class="w-10 h-10 rounded-xl bg-dark-900 hover:bg-brand-600/20 border border-white/10 hover:border-brand-500/40 text-gray-300 hover:text-brand-400 transition flex items-center justify-center relative flex-shrink-0 shadow-sm"
+                title="Click to Speak (Voice Input)">
                 <i data-lucide="mic" class="w-4 h-4" id="tutor-mic-icon"></i>
-                <span id="tutor-mic-pulse" class="hidden absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+                <span id="tutor-mic-pulse"
+                    class="hidden absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
             </button>
 
             <!-- Text Input -->
-            <input type="text" id="tutor-input" onkeydown="if(event.key==='Enter') sendTutorMessage()" placeholder="Ask Diva anything or tap mic..." class="flex-grow bg-dark-900 border border-white/10 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-brand-500 transition text-xs">
+            <input type="text" id="tutor-input" onkeydown="if(event.key==='Enter') sendTutorMessage()"
+                placeholder="Ask Diva anything or tap mic..."
+                class="flex-grow bg-dark-900 border border-white/10 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-brand-500 transition text-xs">
 
             <!-- Send Button -->
-            <button onclick="sendTutorMessage()" id="tutor-send-btn" class="w-10 h-10 rounded-xl bg-brand-600 hover:bg-brand-500 text-white transition flex items-center justify-center flex-shrink-0 shadow-lg shadow-brand-500/20 active:scale-95" title="Send Question">
+            <button onclick="sendTutorMessage()" id="tutor-send-btn"
+                class="w-10 h-10 rounded-xl bg-brand-600 hover:bg-brand-500 text-white transition flex items-center justify-center flex-shrink-0 shadow-lg shadow-brand-500/20 active:scale-95"
+                title="Send Question">
                 <i data-lucide="send" class="w-4 h-4"></i>
             </button>
         </div>
     </aside>
 
     <!-- Consolidated Study Guide / Printable Cheat Sheet Modal -->
-    <div id="study-guide-modal" class="fixed inset-0 z-50 bg-dark-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
-        <div class="glass max-w-4xl w-full max-h-[90vh] rounded-3xl border border-white/15 bg-[#0b0f19] flex flex-col overflow-hidden shadow-2xl">
-            <div id="study-guide-modal-header" class="p-6 border-b border-white/10 flex items-center justify-between bg-dark-900/80 flex-shrink-0">
+    <div id="study-guide-modal"
+        class="fixed inset-0 z-50 bg-dark-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+        <div
+            class="glass max-w-4xl w-full max-h-[90vh] rounded-3xl border border-white/15 bg-[#0b0f19] flex flex-col overflow-hidden shadow-2xl">
+            <div id="study-guide-modal-header"
+                class="p-6 border-b border-white/10 flex items-center justify-between bg-dark-900/80 flex-shrink-0">
                 <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-brand-500/20">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-brand-500/20">
                         <i data-lucide="book-open" class="w-5 h-5"></i>
                     </div>
                     <div>
@@ -705,16 +859,20 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-2">
-                    <button onclick="downloadLessonPDF()" class="px-3.5 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow shadow-brand-500/20 cursor-pointer" title="Download or Print Multi-Page PDF">
+                    <button onclick="downloadLessonPDF()"
+                        class="px-3.5 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow shadow-brand-500/20 cursor-pointer"
+                        title="Download or Print Multi-Page PDF">
                         <i data-lucide="download" class="w-3.5 h-3.5"></i>
                         <span>Download PDF</span>
                     </button>
-                    <button onclick="closeStudyGuideModal()" class="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition cursor-pointer">
+                    <button onclick="closeStudyGuideModal()"
+                        class="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition cursor-pointer">
                         <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>
             </div>
-            <div class="p-8 overflow-y-auto space-y-8 prose prose-invert max-w-none text-gray-300 leading-relaxed text-sm" id="study-guide-content">
+            <div class="p-8 overflow-y-auto space-y-8 prose prose-invert max-w-none text-gray-300 leading-relaxed text-sm"
+                id="study-guide-content">
                 <!-- Consolidated sections injected here -->
             </div>
         </div>
@@ -722,17 +880,17 @@
 </div>
 
 <script>
-    const sections = {{ sections|tojson }};
-    const clientQuiz = {{ quiz|tojson }};
-    
+    const sections = {{ sections| tojson }};
+    const clientQuiz = {{ quiz| tojson }};
+
     // ── Supported Indian & Global Languages Configuration ──
     const INDIAN_LANG_CONFIG = {
         'English': { code: 'en-US', label: 'English', flag: '🇬🇧', script: 'English', prefixes: ['en'], names: ['Natural', 'Jenny', 'Samantha', 'Google UK English Female', 'Victoria', 'en-US', 'en-IN'] },
-        'Tamil':   { code: 'ta-IN', label: 'தமிழ்', flag: '🇮🇳', script: 'தமிழ் (Tamil)', prefixes: ['ta'], names: ['tamil', 'தமிழ்', 'ta-in', 'valluvar', 'iniya'] },
-        'Telugu':  { code: 'te-IN', label: 'తెలుగు', flag: '🇮🇳', script: 'తెలుగు (Telugu)', prefixes: ['te'], names: ['telugu', 'తెలుగు', 'te-in', 'mohan', 'shruti'] },
+        'Tamil': { code: 'ta-IN', label: 'தமிழ்', flag: '🇮🇳', script: 'தமிழ் (Tamil)', prefixes: ['ta'], names: ['tamil', 'தமிழ்', 'ta-in', 'valluvar', 'iniya'] },
+        'Telugu': { code: 'te-IN', label: 'తెలుగు', flag: '🇮🇳', script: 'తెలుగు (Telugu)', prefixes: ['te'], names: ['telugu', 'తెలుగు', 'te-in', 'mohan', 'shruti'] },
         'Bengali': { code: 'bn-IN', label: 'বাংলা', flag: '🇮🇳', script: 'বাংলা (Bengali)', prefixes: ['bn'], names: ['bengali', 'bangla', 'বাংলা', 'bn-in', 'bn-bd', 'tanishaa', 'bashkar'] },
         'Marathi': { code: 'mr-IN', label: 'मराठी', flag: '🇮🇳', script: 'मराठी (Marathi)', prefixes: ['mr'], names: ['marathi', 'मराठी', 'mr-in', 'aarohi', 'manohar'] },
-        'Hindi':   { code: 'hi-IN', label: 'हिंदी', flag: '🇮🇳', script: 'हिंदी (Hindi)', prefixes: ['hi'], names: ['hindi', 'हिंदी', 'hi-in', 'madhur', 'swara', 'kalpana'] }
+        'Hindi': { code: 'hi-IN', label: 'हिंदी', flag: '🇮🇳', script: 'हिंदी (Hindi)', prefixes: ['hi'], names: ['hindi', 'हिंदी', 'hi-in', 'madhur', 'swara', 'kalpana'] }
     };
 
     function getActiveLanguage() {
@@ -804,6 +962,7 @@
             mermaid.initialize({
                 startOnLoad: false,
                 theme: 'dark',
+                securityLevel: 'loose',
                 themeVariables: {
                     darkMode: true,
                     background: '#0b0f19',
@@ -812,7 +971,12 @@
                     primaryBorderColor: '#818cf8',
                     lineColor: '#38bdf8',
                     secondaryColor: '#0f172a',
-                    tertiaryColor: '#1e1b4b'
+                    tertiaryColor: '#1e1b4b',
+                    mainBkg: '#1e1b4b',
+                    nodeBorder: '#818cf8',
+                    clusterBkg: '#0f172a',
+                    titleColor: '#e0e7ff',
+                    edgeLabelBackground: '#1e293b'
                 }
             });
         } catch (e) {
@@ -822,12 +986,24 @@
 
     // ── Configure Marked Renderer for Mermaid & Code blocks ──
     const customRenderer = new marked.Renderer();
-    const defaultCodeRenderer = customRenderer.code.bind(customRenderer);
-    customRenderer.code = function(code, language) {
+    customRenderer.code = function (token, lang) {
+        let code = '';
+        let language = '';
+        if (typeof token === 'object' && token !== null) {
+            code = token.text || '';
+            language = token.lang || '';
+        } else {
+            code = token || '';
+            language = lang || '';
+        }
+
+        language = (language || '').trim().toLowerCase();
+
         if (language === 'mermaid') {
             return `<div class="mermaid">${code}</div>`;
         }
-        return defaultCodeRenderer(code, language);
+
+        return `<pre><code class="language-${language || 'text'}">${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
     };
     marked.setOptions({ renderer: customRenderer, breaks: true });
 
@@ -835,17 +1011,17 @@
     function normalizeNumeralsClient(text) {
         if (!text) return "";
         const numeralMap = {
-            '०':'0','१':'1','२':'2','३':'3','४':'4','५':'5','६':'6','७':'7','८':'8','९':'9',
-            '٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9',
-            '۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9',
-            '௦':'0','௧':'1','௨':'2','௩':'3','௪':'4','௫':'5','௬':'6','௭':'7','௮':'8','௯':'9',
-            '౦':'0','౧':'1','౨':'2','౩':'3','౪':'4','౫':'5','౬':'6','౭':'7','౮':'8','౯':'9',
-            '০':'0','১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9'
+            '०': '0', '१': '1', '२': '2', '३': '3', '४': '4', '५': '5', '६': '6', '७': '7', '८': '8', '९': '9',
+            '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4', '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
+            '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9',
+            '௦': '0', '௧': '1', '௨': '2', '௩': '3', '௪': '4', '௫': '5', '௬': '6', '௭': '7', '௮': '8', '௯': '9',
+            '౦': '0', '౧': '1', '౨': '2', '౩': '3', '౪': '4', '౫': '5', '౬': '6', '౭': '7', '౮': '8', '౯': '9',
+            '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4', '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9'
         };
         return text.replace(/[०-९٠-٩۰-۹௦-௯౦-౯০-৯]/g, m => numeralMap[m] || m);
     }
 
-    // ── Auto-Fence ASCII Art / Box Diagrams ──
+    // ── Auto-Fence ASCII Art / Box Diagrams & Mermaid Diagrams ──
     function autoFenceAsciiArtClient(markdownText) {
         if (!markdownText) return "";
         if (markdownText.includes('\\n')) {
@@ -858,6 +1034,21 @@
         let inCodeBlock = false;
         let asciiBuffer = [];
 
+        const diagramStarters = ['flowchart', 'graph', 'sequencediagram', 'classdiagram', 'statediagram', 'erdiagram', 'gantt', 'journey', 'pie'];
+
+        function isDiagramStarter(line) {
+            const t = line.trim().toLowerCase();
+            if (t === 'mermaid') return true;
+            return diagramStarters.some(st => t.startsWith(st));
+        }
+
+        function isDiagramBody(line) {
+            const t = line.trim();
+            if (!t) return true;
+            if (t.startsWith('###') || t.startsWith('##') || /^\d+\.\s+[A-Z\u0080-\uffff]/.test(t)) return false;
+            return ['-->', '---', '-.->', '==>', '->>', '-->>', '[', '(', '{', 'subgraph', 'end', 'participant', 'class '].some(x => t.includes(x));
+        }
+
         function isAsciiLine(line) {
             const t = line.trim();
             if (!t) return false;
@@ -868,8 +1059,12 @@
             return false;
         }
 
-        for (const line of lines) {
-            if (line.trim().startsWith("```")) {
+        let i = 0;
+        while (i < lines.length) {
+            const line = lines[i];
+            const trimmed = line.trim();
+
+            if (trimmed.startsWith("```")) {
                 if (asciiBuffer.length > 0) {
                     newLines.push("```text");
                     newLines.push(...asciiBuffer);
@@ -878,12 +1073,57 @@
                 }
                 inCodeBlock = !inCodeBlock;
                 newLines.push(line);
+                i++;
                 continue;
             }
+
             if (inCodeBlock) {
                 newLines.push(line);
+                i++;
                 continue;
             }
+
+            // Detect unfenced Mermaid diagram
+            if (isDiagramStarter(line)) {
+                if (asciiBuffer.length > 0) {
+                    newLines.push("```text");
+                    newLines.push(...asciiBuffer);
+                    newLines.push("```");
+                    asciiBuffer = [];
+                }
+
+                const diagramLines = [];
+                if (trimmed.toLowerCase() === 'mermaid') {
+                    i++;
+                    if (i < lines.length && isDiagramStarter(lines[i])) {
+                        diagramLines.push(lines[i].trim());
+                    } else if (i < lines.length) {
+                        diagramLines.push(lines[i].trim());
+                    }
+                } else {
+                    diagramLines.push(trimmed);
+                }
+
+                i++;
+                while (i < lines.length && !lines[i].trim().startsWith('```') && isDiagramBody(lines[i])) {
+                    if (lines[i].trim()) {
+                        diagramLines.push(lines[i].trim());
+                    }
+                    i++;
+                }
+
+                while (diagramLines.length > 0 && !diagramLines[diagramLines.length - 1]) {
+                    diagramLines.pop();
+                }
+
+                if (diagramLines.length > 0) {
+                    newLines.push("```mermaid");
+                    newLines.push(...diagramLines);
+                    newLines.push("```");
+                }
+                continue;
+            }
+
             if (isAsciiLine(line)) {
                 asciiBuffer.push(line);
             } else {
@@ -895,7 +1135,9 @@
                 }
                 newLines.push(line);
             }
+            i++;
         }
+
         if (asciiBuffer.length > 0) {
             newLines.push("```text");
             newLines.push(...asciiBuffer);
@@ -925,13 +1167,13 @@
         }
     }
 
-    document.addEventListener("DOMContentLoaded", function() {
+    document.addEventListener("DOMContentLoaded", function () {
         // Sync voice player language UI with cookie
         syncVoicePlayerLanguageUI();
 
         // Load first section
         setActiveSection(0);
-        
+
         // Initialize Voice Visualizers and Speech Synthesis
         initVoiceChartVisualizer();
         initPlayerSpectrum();
@@ -943,7 +1185,11 @@
         if (idx < 0 || idx >= sections.length) return;
         activeSecIdx = idx;
         viewedSections.add(idx);
-        
+
+        if (DivaVoice && DivaVoice.isNarratingSection) {
+            DivaVoice.narrateSection(idx, currentNarrationLang);
+        }
+
         // Hide other panels
         document.getElementById('subtopic-panel').classList.remove('hidden');
         document.getElementById('quiz-panel').classList.add('hidden');
@@ -959,7 +1205,7 @@
                     btn.className = "w-full flex items-center justify-between text-left p-3 rounded-xl border border-white/5 bg-dark-900/40 hover:bg-white/5 transition-all duration-200";
                 }
             }
-            
+
             // Mark viewed icons
             const tocCheck = document.getElementById(`toc-check-${i}`);
             if (tocCheck && viewedSections.has(i)) {
@@ -972,12 +1218,12 @@
         const sec = sections[idx];
         document.getElementById('section-badge').innerText = `Section ${idx + 1} of ${sections.length}`;
         document.getElementById('section-title').innerText = sec.title;
-        
+
         // Format & render markdown with auto-fenced ASCII and Mermaid
         const rawContent = sec.content || '';
         const safeMarkdown = autoFenceAsciiArtClient(rawContent);
         document.getElementById('section-markdown-content').innerHTML = marked.parse(safeMarkdown);
-        
+
         // Enhance all code blocks with 1-click Copy and Run in Runner buttons
         decorateCodeBlocks();
 
@@ -990,7 +1236,7 @@
                 }
             }, 60);
         }
-        
+
         // Example box
         if (sec.example) {
             document.getElementById('section-example-box').classList.remove('hidden');
@@ -1176,13 +1422,13 @@
     function askTutorAboutCurrentTopic() {
         const sec = sections[activeSecIdx];
         const topicName = sec ? sec.title : "{{ lesson.title }}";
-        
+
         // Ensure tutor drawer is open
         const drawer = document.getElementById('tutor-drawer');
         if (drawer.classList.contains('translate-x-full')) {
             toggleTutorDrawer();
         }
-        
+
         const prompt = `Can you explain "${topicName}" in simple terms with a key example?`;
         appendChatMessage('user', prompt);
         callTutorAPI(prompt);
@@ -1217,7 +1463,7 @@
         currentCardIdx = 0;
         cardFlipped = false;
         masteredCards.clear();
-        
+
         sections.forEach((sec, sIdx) => {
             flashcards.push({
                 category: "CORE PRINCIPLE",
@@ -1225,7 +1471,7 @@
                 back: `In Diva Ideas architecture, ${sec.title} focuses on mastering the underlying mental model, parameter syntax, and execution flow.`,
                 code: sec.example ? sec.example.substring(0, 160) : ""
             });
-            
+
             if (sec.mcqQuestions && sec.mcqQuestions.length > 0) {
                 sec.mcqQuestions.forEach((q, qIdx) => {
                     const correctOpt = q.options[q.correctIndex] || "Correct Principle";
@@ -1251,14 +1497,14 @@
 
     function showFlashcardsSection() {
         if (flashcards.length === 0) initFlashcards();
-        
+
         for (let i = 0; i < sections.length; i++) {
             const btn = document.getElementById(`toc-btn-${i}`);
             if (btn) btn.className = "w-full flex items-center justify-between text-left p-3 rounded-xl border border-white/5 bg-dark-900/40 hover:bg-white/5 transition-all duration-200";
         }
         const qBtn = document.getElementById('toc-btn-quiz');
         if (qBtn) qBtn.className = "w-full flex items-center justify-between text-left p-3.5 rounded-xl border border-brand-500/20 bg-brand-500/10 hover:bg-brand-500/20 transition-all duration-200";
-        
+
         const fcBtn = document.getElementById('toc-btn-flashcards');
         if (fcBtn) fcBtn.className = "w-full flex items-center justify-between text-left p-3.5 rounded-xl border border-purple-500 bg-purple-500/20 text-white transition-all duration-200";
 
@@ -1562,33 +1808,33 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ answers: formatted })
         })
-        .then(res => res.json())
-        .then(data => {
-            if (data.passed) {
-                // Confetti trigger
-                try {
-                    confetti({
-                        particleCount: 100,
-                        spread: 70,
-                        origin: { y: 0.6 }
-                    });
-                } catch(e){}
-                alert(`Congratulations! You passed with ${data.score}%!`);
-                window.location.href = "{{ url_for('learning.roadmap_view', path_id=lesson.learning_path_id) }}";
-            } else {
-                // Failed, display remediation
-                document.getElementById('quiz-panel').classList.add('hidden');
-                document.getElementById('remediation-panel').classList.remove('hidden');
-                document.getElementById('remediation-text').innerHTML = marked.parse(data.remediation.remediationText);
-                
-                // Update quiz variable to load the retry quiz
-                clientQuiz.length = 0;
-                data.retryQuiz.forEach(q => clientQuiz.push(q));
-                quizSelectedAnswers = {};
-                document.getElementById('content-pane').scrollTop = 0;
-            }
-        })
-        .catch(err => alert("Failed to submit quiz."));
+            .then(res => res.json())
+            .then(data => {
+                if (data.passed) {
+                    // Confetti trigger
+                    try {
+                        confetti({
+                            particleCount: 100,
+                            spread: 70,
+                            origin: { y: 0.6 }
+                        });
+                    } catch (e) { }
+                    alert(`Congratulations! You passed with ${data.score}%!`);
+                    window.location.href = "{{ url_for('learning.roadmap_view', path_id=lesson.learning_path_id) }}";
+                } else {
+                    // Failed, display remediation
+                    document.getElementById('quiz-panel').classList.add('hidden');
+                    document.getElementById('remediation-panel').classList.remove('hidden');
+                    document.getElementById('remediation-text').innerHTML = marked.parse(data.remediation.remediationText);
+
+                    // Update quiz variable to load the retry quiz
+                    clientQuiz.length = 0;
+                    data.retryQuiz.forEach(q => clientQuiz.push(q));
+                    quizSelectedAnswers = {};
+                    document.getElementById('content-pane').scrollTop = 0;
+                }
+            })
+            .catch(err => alert("Failed to submit quiz."));
     }
 
     function startRetry() {
@@ -1617,7 +1863,7 @@
         const drawer = document.getElementById('tutor-drawer');
         const floatingActions = document.getElementById('floating-actions');
         const isClosed = drawer.classList.contains('translate-x-full');
-        
+
         if (isClosed) {
             // Close code runner drawer if open
             const runnerDrawer = document.getElementById('runner-drawer');
@@ -1685,41 +1931,41 @@
                 language: activeLang
             })
         })
-        .then(res => res.json())
-        .then(data => {
-            const loadEl = document.getElementById(loadId);
-            if (loadEl) loadEl.remove();
-            const reply = data.reply || "I am ready to help.";
-            const targetLang = data.language || activeLang;
+            .then(res => res.json())
+            .then(data => {
+                const loadEl = document.getElementById(loadId);
+                if (loadEl) loadEl.remove();
+                const reply = data.reply || "I am ready to help.";
+                const targetLang = data.language || activeLang;
 
-            // Automatically update language badge to the detected language (e.g. Tamil -> தமிழ், Telugu -> తెలుగు)
-            updateActiveLanguageUI(targetLang);
+                // Automatically update language badge to the detected language (e.g. Tamil -> தமிழ், Telugu -> తెలుగు)
+                updateActiveLanguageUI(targetLang);
 
-            const msgId = `msg-${Date.now()}-${Math.floor(Math.random()*1000)}`;
-            appendChatMessage('bot', reply, targetLang, msgId);
-            
-            // Speak response in the detected target language if voice TTS is enabled
-            if (voiceTTSEnabled) {
-                DivaVoice.speakText(reply, targetLang, msgId);
-            } else {
-                updateVoiceStatus("idle", "Voice Ready • Click Mic or type");
-            }
-        })
-        .catch(err => {
-            const loadEl = document.getElementById(loadId);
-            if (loadEl) loadEl.remove();
-            appendChatMessage('bot', 'An error occurred while connecting to Diva AI Tutor.');
-            updateVoiceStatus("idle", "Ready to talk");
-        });
+                const msgId = `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+                appendChatMessage('bot', reply, targetLang, msgId);
+
+                // Speak response in the detected target language if voice TTS is enabled
+                if (voiceTTSEnabled) {
+                    DivaVoice.speakText(reply, targetLang, msgId);
+                } else {
+                    updateVoiceStatus("idle", "Voice Ready • Click Mic or type");
+                }
+            })
+            .catch(err => {
+                const loadEl = document.getElementById(loadId);
+                if (loadEl) loadEl.remove();
+                appendChatMessage('bot', 'An error occurred while connecting to Diva AI Tutor.');
+                updateVoiceStatus("idle", "Ready to talk");
+            });
     }
 
     function appendChatMessage(sender, text, lang = null, explicitMsgId = null) {
         const historyDiv = document.getElementById('chat-history');
         const isUser = sender === 'user';
         const classes = isUser ? 'bg-brand-600 text-white self-end ml-6' : 'bg-white/5 border border-white/5 text-gray-300 mr-2 max-w-full overflow-hidden break-words';
-        const msgId = explicitMsgId || `msg-${Date.now()}-${Math.floor(Math.random()*1000)}`;
+        const msgId = explicitMsgId || `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
         const effectiveLang = lang || getActiveLanguage();
-        
+
         let audioBtnHtml = '';
         if (!isUser) {
             const cleanText = escapeQuotesForJS(stripMarkdownForTTS(text));
@@ -1767,7 +2013,7 @@
         voiceChartCanvas = document.getElementById('voice-chart-canvas');
         if (!voiceChartCanvas) return;
         voiceChartCtx = voiceChartCanvas.getContext('2d');
-        
+
         let phase = 0;
         const numBars = 36;
 
@@ -1931,16 +2177,16 @@
             recognition = new SpeechRec();
             recognition.continuous = false;
             recognition.interimResults = true;
-            
+
             const activeLang = getActiveLanguage();
             const cfg = INDIAN_LANG_CONFIG[activeLang] || INDIAN_LANG_CONFIG['English'];
             recognition.lang = cfg.code;
 
-            recognition.onstart = function() {
+            recognition.onstart = function () {
                 updateVoiceStatus('listening', `Listening in ${cfg.label}... Speak now`);
             };
 
-            recognition.onresult = function(event) {
+            recognition.onresult = function (event) {
                 let interimTranscript = '';
                 let finalTranscript = '';
 
@@ -1958,12 +2204,12 @@
                 }
             };
 
-            recognition.onerror = function(event) {
+            recognition.onerror = function (event) {
                 console.warn("Speech recognition error:", event.error);
                 updateVoiceStatus('idle', 'Voice mic stopped • Click to talk');
             };
 
-            recognition.onend = function() {
+            recognition.onend = function () {
                 updateVoiceStatus('idle', 'Voice Ready • Click Mic or type');
                 const input = document.getElementById('tutor-input');
                 if (input && input.value.trim().length > 1) {
@@ -1989,7 +2235,7 @@
             updateVoiceStatus('idle', 'Voice Ready');
         } else {
             stopAllSpeech();
-            
+
             // Sync recognition language before starting
             const activeLang = getActiveLanguage();
             const cfg = INDIAN_LANG_CONFIG[activeLang] || INDIAN_LANG_CONFIG['English'];
@@ -2048,7 +2294,7 @@
         if (!voices || voices.length === 0) return null;
 
         const cfg = INDIAN_LANG_CONFIG[langName] || INDIAN_LANG_CONFIG['English'];
-        
+
         // 1. Try matching specific regional voice names
         for (let nameKw of cfg.names) {
             const found = voices.find(v => v.name.toLowerCase().includes(nameKw.toLowerCase()));
@@ -2063,8 +2309,8 @@
 
         // 3. Fallback to natural female / English / first voice
         const fallback = voices.find(v => v.lang.toLowerCase().includes('en-in')) ||
-                         voices.find(v => v.lang.toLowerCase().startsWith('en')) ||
-                         voices[0];
+            voices.find(v => v.lang.toLowerCase().startsWith('en')) ||
+            voices[0];
         return fallback;
     }
 
@@ -2103,22 +2349,22 @@
                 try {
                     this.audio.pause();
                     this.audio.src = '';
-                } catch(e) {}
+                } catch (e) { }
                 this.audio = null;
             }
 
             if ('speechSynthesis' in window) {
-                try { window.speechSynthesis.cancel(); } catch(e) {}
+                try { window.speechSynthesis.cancel(); } catch (e) { }
             }
 
             if (recognition && isListening) {
-                try { recognition.stop(); } catch(e) {}
+                try { recognition.stop(); } catch (e) { }
             }
 
-            updatePlayerUI('idle', 'Listen to AI audio narration in your language');
+            updateLessonAudioPlayerUI('idle');
             updateVoiceStatus('idle', 'Voice Ready • Click Mic or type');
-            const subtitleEl = document.getElementById('player-live-sentence');
-            if (subtitleEl) subtitleEl.classList.add('hidden');
+            const subtitleBox = document.getElementById('narration-subtitle-box');
+            if (subtitleBox) subtitleBox.classList.add('hidden');
             safeCreateIcons();
         },
 
@@ -2165,17 +2411,24 @@
             safeCreateIcons();
         },
 
-        narrateSection(secIdx) {
+        narrateSection(secIdx, targetLang = null) {
             const sec = sections[secIdx];
             if (!sec) return;
 
             this.stop();
-            const activeLang = getActiveLanguage();
+            const activeLang = targetLang || getLessonContentLanguage() || getActiveLanguage();
             const cfg = INDIAN_LANG_CONFIG[activeLang] || INDIAN_LANG_CONFIG['English'];
 
-            let fullText = `${sec.title}. `;
-            if (sec.content) fullText += sec.content;
-            if (sec.example) fullText += ` Worked example: ${sec.example}`;
+            let fullText = '';
+            const domContent = document.getElementById('section-markdown-content');
+            const titleEl = document.getElementById('section-title');
+            if (domContent && domContent.innerText && domContent.innerText.trim().length > 10) {
+                fullText = (titleEl ? titleEl.innerText + '. ' : '') + domContent.innerText;
+            } else {
+                fullText = `${sec.title}. `;
+                if (sec.content) fullText += sec.content;
+                if (sec.example) fullText += ` Worked example: ${sec.example}`;
+            }
 
             const clean = stripMarkdownForTTS(fullText);
             this.queue = splitIntoNarrationSentences(clean);
@@ -2187,8 +2440,8 @@
             this.isPlaying = true;
             this.isNarratingSection = true;
 
-            updatePlayerUI('playing', `Diva Voice Narrating: ${sec.title}`);
-            updateVoiceStatus('speaking', `Diva Voice (${cfg.label}) • Deep Dive Audio Active`);
+            updateLessonAudioPlayerUI('playing');
+            updateVoiceStatus('speaking', `Diva reading in ${cfg.label}...`);
 
             this.playNextChunk(gen, () => {
                 this.stop();
@@ -2209,10 +2462,13 @@
             const cfg = INDIAN_LANG_CONFIG[lang] || INDIAN_LANG_CONFIG['English'];
 
             // Update live subtitle bar
-            const subtitleEl = document.getElementById('player-live-sentence');
+            const subtitleEl = document.getElementById('narration-current-sentence');
+            const subtitleBox = document.getElementById('narration-subtitle-box');
             if (subtitleEl) {
                 subtitleEl.innerText = sentence;
-                subtitleEl.classList.remove('hidden');
+            }
+            if (subtitleBox) {
+                subtitleBox.classList.remove('hidden');
             }
 
             const encodedText = encodeURIComponent(sentence);
@@ -2278,44 +2534,57 @@
         }
     };
 
-    function setPlayerVoiceSpeed(rate, btn) {
-        DivaVoice.rate = rate;
-        if (DivaVoice.audio) {
-            try { DivaVoice.audio.playbackRate = rate; } catch(e) {}
+    function getLessonContentLanguage() {
+        const sec = (typeof sections !== 'undefined' && sections[activeSecIdx]) ? sections[activeSecIdx] : null;
+        let textSample = (sec ? (sec.title + ' ' + (sec.content || '')) : '');
+        const domContent = document.getElementById('section-markdown-content');
+        if (domContent && domContent.innerText) {
+            textSample = domContent.innerText;
         }
-        const container = document.getElementById('player-speed-controls');
-        if (container) {
-            const btns = container.querySelectorAll('button');
-            btns.forEach(b => {
-                b.className = "px-1.5 py-0.5 rounded text-gray-400 hover:text-white";
-            });
-            if (btn) {
-                btn.className = "px-1.5 py-0.5 rounded bg-brand-500/20 text-brand-300 font-bold";
-            }
+
+        // Auto-detect language from translated content scripts
+        if (/[\u0B80-\u0BFF]/.test(textSample)) return 'Tamil';
+        if (/[\u0C00-\u0C7F]/.test(textSample)) return 'Telugu';
+        if (/[\u0980-\u09FF]/.test(textSample)) return 'Bengali';
+        if (/[\u0900-\u097F]/.test(textSample)) {
+            const active = getActiveLanguage();
+            return (active === 'Marathi') ? 'Marathi' : 'Hindi';
         }
-        const drawerSelector = document.getElementById('voice-speed-selector');
-        if (drawerSelector) {
-            const dBtns = drawerSelector.querySelectorAll('button');
-            dBtns.forEach(b => {
-                b.className = "px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-gray-400 font-mono transition";
-                if (b.innerText.includes(rate + 'x') || (rate === 1.0 && b.innerText === '1.0x')) {
-                    b.className = "px-2 py-0.5 rounded-md bg-brand-500/20 text-brand-300 border border-brand-500/30 font-mono font-bold transition";
-                }
-            });
+        return getActiveLanguage() || 'English';
+    }
+
+    function toggleLessonListen() {
+        if (DivaVoice.isNarratingSection) {
+            DivaVoice.stop();
+        } else {
+            const lang = getLessonContentLanguage();
+            DivaVoice.narrateSection(activeSecIdx, lang);
         }
     }
 
-    function setVoiceSpeed(rate, btn) {
-        setPlayerVoiceSpeed(rate, null);
-        if (btn) {
-            const drawerSelector = document.getElementById('voice-speed-selector');
-            if (drawerSelector) {
-                drawerSelector.querySelectorAll('button').forEach(b => {
-                    b.className = "px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-gray-400 font-mono transition";
-                });
-                btn.className = "px-2 py-0.5 rounded-md bg-brand-500/20 text-brand-300 border border-brand-500/30 font-mono font-bold transition";
+    function stopLessonListen() {
+        DivaVoice.stop();
+    }
+
+    function updateLessonAudioPlayerUI(state) {
+        const headerBtn = document.getElementById('lesson-listen-header-btn');
+        const headerIcon = document.getElementById('listen-header-icon');
+        const headerText = document.getElementById('listen-header-text');
+
+        if (state === 'playing') {
+            if (headerBtn) {
+                headerBtn.className = "glass bg-emerald-500/20 border-emerald-500/40 text-emerald-300 px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer shadow-sm";
             }
+            if (headerIcon) headerIcon.setAttribute('data-lucide', 'pause');
+            if (headerText) headerText.innerText = "Playing...";
+        } else {
+            if (headerBtn) {
+                headerBtn.className = "glass hover:bg-brand-500/20 hover:border-brand-500/40 text-brand-300 px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer border border-brand-500/30 shadow-sm";
+            }
+            if (headerIcon) headerIcon.setAttribute('data-lucide', 'volume-2');
+            if (headerText) headerText.innerText = "Listen";
         }
+        safeCreateIcons();
     }
 
     function toggleVoiceTTS() {
@@ -2466,7 +2735,7 @@
         playerSpectrumCanvas = document.getElementById('player-spectrum-canvas');
         if (!playerSpectrumCanvas) return;
         playerSpectrumCtx = playerSpectrumCanvas.getContext('2d');
-        
+
         let phase = 0;
         const numBars = 32;
 
@@ -2514,7 +2783,7 @@
         const drawer = document.getElementById('runner-drawer');
         const floatingActions = document.getElementById('floating-actions');
         const isClosed = drawer.classList.contains('translate-x-full');
-        
+
         if (isClosed) {
             const tutorDrawer = document.getElementById('tutor-drawer');
             if (!tutorDrawer.classList.contains('translate-x-full')) {
@@ -2522,7 +2791,7 @@
             }
             drawer.classList.remove('translate-x-full');
             floatingActions.classList.add('opacity-0', 'pointer-events-none', 'translate-x-12');
-            
+
             const editor = document.getElementById('drawer-code-editor');
             if (!editor.value.trim() && sections[activeSecIdx] && sections[activeSecIdx].example) {
                 editor.value = cleanCodeSnippet(sections[activeSecIdx].example);
@@ -2543,7 +2812,7 @@
 
         const domainStr = "{{ lesson.learning_path.domain }}".toLowerCase();
         const select = document.getElementById('drawer-lang-select');
-        
+
         if (domainStr.includes("python")) select.value = "python";
         else if (domainStr.includes("sql")) select.value = "sql";
         else if (domainStr.includes("rust")) select.value = "rust";
@@ -2677,11 +2946,11 @@
     function selectLanguageAndTranslate(lang) {
         document.cookie = "preferred_language=" + encodeURIComponent(lang) + "; path=/; max-age=31536000";
         closeTranslateModal();
-        
+
         const loadingModal = document.getElementById('translate-loading-modal');
         const subtitle = document.getElementById('translate-modal-subtitle');
         const cfg = INDIAN_LANG_CONFIG[lang] || { label: lang };
-        
+
         if (subtitle) {
             subtitle.innerText = `Diva AI is regenerating all 50-minute syllabus subtopics, code examples, and practice MCQs in ${cfg.label}. Please wait a few seconds...`;
         }
@@ -2694,11 +2963,14 @@
 </script>
 
 <!-- Interactive Regional Language Selection Modal Overlay -->
-<div id="translate-select-modal" class="fixed inset-0 z-50 bg-dark-950/80 backdrop-blur-md flex items-center justify-center hidden p-4">
-    <div class="glass max-w-xl w-full p-6 md:p-8 rounded-3xl border border-brand-500/30 text-left space-y-6 shadow-2xl shadow-brand-950/50">
+<div id="translate-select-modal"
+    class="fixed inset-0 z-50 bg-dark-950/80 backdrop-blur-md flex items-center justify-center hidden p-4">
+    <div
+        class="glass max-w-xl w-full p-6 md:p-8 rounded-3xl border border-brand-500/30 text-left space-y-6 shadow-2xl shadow-brand-950/50">
         <div class="flex items-center justify-between border-b border-white/10 pb-4">
             <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-lg shadow-amber-500/20">
+                <div
+                    class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-lg shadow-amber-500/20">
                     <i data-lucide="languages" class="w-5 h-5"></i>
                 </div>
                 <div>
@@ -2706,14 +2978,16 @@
                     <p class="text-xs text-gray-400">Choose your preferred language for explanations & Diva AI Voice</p>
                 </div>
             </div>
-            <button onclick="closeTranslateModal()" class="w-8 h-8 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition">
+            <button onclick="closeTranslateModal()"
+                class="w-8 h-8 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition">
                 <i data-lucide="x" class="w-5 h-5"></i>
             </button>
         </div>
 
         <!-- 6 Regional Language Cards Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button type="button" onclick="selectLanguageAndTranslate('Tamil')" class="p-4 rounded-2xl border border-white/10 hover:border-brand-500 bg-dark-900/60 hover:bg-brand-500/10 text-left transition flex items-center space-x-3 group cursor-pointer">
+            <button type="button" onclick="selectLanguageAndTranslate('Tamil')"
+                class="p-4 rounded-2xl border border-white/10 hover:border-brand-500 bg-dark-900/60 hover:bg-brand-500/10 text-left transition flex items-center space-x-3 group cursor-pointer">
                 <span class="text-2xl">🇮🇳</span>
                 <div>
                     <div class="font-bold text-sm text-white group-hover:text-brand-300 transition">தமிழ் (Tamil)</div>
@@ -2721,15 +2995,18 @@
                 </div>
             </button>
 
-            <button type="button" onclick="selectLanguageAndTranslate('Telugu')" class="p-4 rounded-2xl border border-white/10 hover:border-brand-500 bg-dark-900/60 hover:bg-brand-500/10 text-left transition flex items-center space-x-3 group cursor-pointer">
+            <button type="button" onclick="selectLanguageAndTranslate('Telugu')"
+                class="p-4 rounded-2xl border border-white/10 hover:border-brand-500 bg-dark-900/60 hover:bg-brand-500/10 text-left transition flex items-center space-x-3 group cursor-pointer">
                 <span class="text-2xl">🇮🇳</span>
                 <div>
-                    <div class="font-bold text-sm text-white group-hover:text-brand-300 transition">తెలుగు (Telugu)</div>
+                    <div class="font-bold text-sm text-white group-hover:text-brand-300 transition">తెలుగు (Telugu)
+                    </div>
                     <div class="text-[11px] text-gray-400">Telugu explanations & Diva voice</div>
                 </div>
             </button>
 
-            <button type="button" onclick="selectLanguageAndTranslate('English')" class="p-4 rounded-2xl border border-white/10 hover:border-brand-500 bg-dark-900/60 hover:bg-brand-500/10 text-left transition flex items-center space-x-3 group cursor-pointer">
+            <button type="button" onclick="selectLanguageAndTranslate('English')"
+                class="p-4 rounded-2xl border border-white/10 hover:border-brand-500 bg-dark-900/60 hover:bg-brand-500/10 text-left transition flex items-center space-x-3 group cursor-pointer">
                 <span class="text-2xl">🇬🇧</span>
                 <div>
                     <div class="font-bold text-sm text-white group-hover:text-brand-300 transition">English</div>
@@ -2737,23 +3014,28 @@
                 </div>
             </button>
 
-            <button type="button" onclick="selectLanguageAndTranslate('Bengali')" class="p-4 rounded-2xl border border-white/10 hover:border-brand-500 bg-dark-900/60 hover:bg-brand-500/10 text-left transition flex items-center space-x-3 group cursor-pointer">
+            <button type="button" onclick="selectLanguageAndTranslate('Bengali')"
+                class="p-4 rounded-2xl border border-white/10 hover:border-brand-500 bg-dark-900/60 hover:bg-brand-500/10 text-left transition flex items-center space-x-3 group cursor-pointer">
                 <span class="text-2xl">🇮🇳</span>
                 <div>
-                    <div class="font-bold text-sm text-white group-hover:text-brand-300 transition">বাংলা (Bengali)</div>
+                    <div class="font-bold text-sm text-white group-hover:text-brand-300 transition">বাংলা (Bengali)
+                    </div>
                     <div class="text-[11px] text-gray-400">Bengali explanations & Diva voice</div>
                 </div>
             </button>
 
-            <button type="button" onclick="selectLanguageAndTranslate('Marathi')" class="p-4 rounded-2xl border border-white/10 hover:border-brand-500 bg-dark-900/60 hover:bg-brand-500/10 text-left transition flex items-center space-x-3 group cursor-pointer">
+            <button type="button" onclick="selectLanguageAndTranslate('Marathi')"
+                class="p-4 rounded-2xl border border-white/10 hover:border-brand-500 bg-dark-900/60 hover:bg-brand-500/10 text-left transition flex items-center space-x-3 group cursor-pointer">
                 <span class="text-2xl">🇮🇳</span>
                 <div>
-                    <div class="font-bold text-sm text-white group-hover:text-brand-300 transition">मराठी (Marathi)</div>
+                    <div class="font-bold text-sm text-white group-hover:text-brand-300 transition">मराठी (Marathi)
+                    </div>
                     <div class="text-[11px] text-gray-400">Marathi explanations & Diva voice</div>
                 </div>
             </button>
 
-            <button type="button" onclick="selectLanguageAndTranslate('Hindi')" class="p-4 rounded-2xl border border-white/10 hover:border-brand-500 bg-dark-900/60 hover:bg-brand-500/10 text-left transition flex items-center space-x-3 group cursor-pointer">
+            <button type="button" onclick="selectLanguageAndTranslate('Hindi')"
+                class="p-4 rounded-2xl border border-white/10 hover:border-brand-500 bg-dark-900/60 hover:bg-brand-500/10 text-left transition flex items-center space-x-3 group cursor-pointer">
                 <span class="text-2xl">🇮🇳</span>
                 <div>
                     <div class="font-bold text-sm text-white group-hover:text-brand-300 transition">हिंदी (Hindi)</div>
@@ -2762,25 +3044,33 @@
             </button>
         </div>
 
-        <div class="p-3 bg-white/5 rounded-xl text-[11px] text-gray-400 leading-relaxed border border-white/5 flex items-center space-x-2">
+        <div
+            class="p-3 bg-white/5 rounded-xl text-[11px] text-gray-400 leading-relaxed border border-white/5 flex items-center space-x-2">
             <i data-lucide="info" class="w-4 h-4 text-brand-400 flex-shrink-0"></i>
-            <span>All code snippets, functions, and runnable examples remain in 100% pure ASCII English for industry-standard compiler compatibility.</span>
+            <span>All code snippets, functions, and runnable examples remain in 100% pure ASCII English for
+                industry-standard compiler compatibility.</span>
         </div>
     </div>
 </div>
 
 <!-- Translation Loading Modal Overlay -->
-<div id="translate-loading-modal" class="fixed inset-0 z-50 bg-dark-950/80 backdrop-blur-md flex items-center justify-center hidden p-4">
-    <div class="glass max-w-md w-full p-6 md:p-8 rounded-3xl border border-brand-500/30 text-center space-y-5 shadow-2xl shadow-brand-950/50">
-        <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center mx-auto shadow-xl shadow-brand-500/30 animate-bounce">
+<div id="translate-loading-modal"
+    class="fixed inset-0 z-50 bg-dark-950/80 backdrop-blur-md flex items-center justify-center hidden p-4">
+    <div
+        class="glass max-w-md w-full p-6 md:p-8 rounded-3xl border border-brand-500/30 text-center space-y-5 shadow-2xl shadow-brand-950/50">
+        <div
+            class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center mx-auto shadow-xl shadow-brand-500/30 animate-bounce">
             <i data-lucide="languages" class="w-8 h-8"></i>
         </div>
         <div class="space-y-2">
             <h3 class="text-xl font-bold text-white">Translating Lesson Content...</h3>
-            <p id="translate-modal-subtitle" class="text-xs text-gray-300 leading-relaxed">Diva AI is regenerating all syllabus subtopics, code examples, and practice questions in your chosen language.</p>
+            <p id="translate-modal-subtitle" class="text-xs text-gray-300 leading-relaxed">Diva AI is regenerating all
+                syllabus subtopics, code examples, and practice questions in your chosen language.</p>
         </div>
         <div class="w-full bg-white/5 rounded-full h-2 overflow-hidden border border-white/10">
-            <div class="bg-gradient-to-r from-brand-500 via-indigo-500 to-emerald-500 h-full rounded-full animate-pulse w-full"></div>
+            <div
+                class="bg-gradient-to-r from-brand-500 via-indigo-500 to-emerald-500 h-full rounded-full animate-pulse w-full">
+            </div>
         </div>
         <div class="flex items-center justify-center space-x-2 text-[11px] text-brand-400 font-mono">
             <i data-lucide="sparkles" class="w-3.5 h-3.5 animate-spin"></i>
