@@ -275,16 +275,20 @@ def roadmap_view(path_id):
 @login_required
 def lesson_view(progress_id):
     lesson = LessonProgress.query.get_or_404(progress_id)
-    if lesson.learning_path.user_id != current_user.id:
+    if not lesson.learning_path or lesson.learning_path.user_id != current_user.id:
         return redirect(url_for("learning.dashboard"))
         
     force_regen = request.args.get("regenerate") == "true"
     
     # Auto-detect legacy thin content to upgrade to comprehensive 50-min textbook standard
     is_thin_content = False
-    if lesson.content_sections and not force_regen:
-        section_word_counts = [len(s.get("content", "").split()) for s in lesson.content_sections]
-        if any(cnt < 220 for cnt in section_word_counts) or sum(section_word_counts) < 900:
+    if lesson.content_sections and isinstance(lesson.content_sections, list) and not force_regen:
+        section_word_counts = []
+        for s in lesson.content_sections:
+            if isinstance(s, dict):
+                c = s.get("content") or ""
+                section_word_counts.append(len(c.split()))
+        if section_word_counts and (any(cnt < 220 for cnt in section_word_counts) or sum(section_word_counts) < 900):
             is_thin_content = True
             logger.info("Upgrading legacy thin lesson content (%s words) for '%s'", sum(section_word_counts), lesson.title)
     
@@ -294,7 +298,7 @@ def lesson_view(progress_id):
         skill_desc = f"Skill: {lesson.title} ({lesson.target_skill_id or lesson.lesson_id})"
         tier = lesson.tier
         is_revision = lesson.is_revision_module
-        domain = lesson.learning_path.domain
+        domain = lesson.learning_path.domain if lesson.learning_path else "General"
         
         try:
             generated = generate_full_lesson(
@@ -341,23 +345,37 @@ def lesson_view(progress_id):
     # Sanitize quiz to hide correct index from client
     client_quiz = []
     if lesson.quiz_json:
-        for q in lesson.quiz_json:
-            client_quiz.append({
-                "id": q["id"],
-                "question": q["question"],
-                "options": q["options"],
-                "subtopicId": q.get("subtopicId")
-            })
+        raw_quiz = lesson.quiz_json
+        if isinstance(raw_quiz, str):
+            try:
+                raw_quiz = json.loads(raw_quiz)
+            except Exception:
+                raw_quiz = []
+        if isinstance(raw_quiz, list):
+            for q in raw_quiz:
+                if isinstance(q, dict):
+                    client_quiz.append({
+                        "id": q.get("id", ""),
+                        "question": q.get("question", ""),
+                        "options": q.get("options", []),
+                        "subtopicId": q.get("subtopicId", "")
+                    })
             
     from app.learning.services.lesson_content import ensure_section_mcqs
-    sections_with_mcqs = ensure_section_mcqs(lesson.content_sections or [], lesson.title, lesson.learning_path.domain)
+    domain = lesson.learning_path.domain if lesson.learning_path else "General"
+    sections_with_mcqs = ensure_section_mcqs(lesson.content_sections or [], lesson.title, domain)
 
-    return render_template(
-        "lesson/lesson.html",
-        lesson=lesson,
-        quiz=client_quiz,
-        sections=sections_with_mcqs
-    )
+    try:
+        return render_template(
+            "lesson/lesson.html",
+            lesson=lesson,
+            quiz=client_quiz,
+            sections=sections_with_mcqs
+        )
+    except Exception as e:
+        logger.exception("Failed to render lesson view for progress_id '%s'", progress_id)
+        flash("An error occurred while loading this lesson. Please try again.", "error")
+        return redirect(url_for("learning.roadmap_view", path_id=lesson.learning_path_id))
 
 @learning_bp.route("/lesson/<progress_id>/download-pdf", methods=["GET"])
 @login_required
