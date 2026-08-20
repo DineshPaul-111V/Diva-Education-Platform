@@ -43,13 +43,12 @@ GEMINI_MODELS = [
     "gemini-3.7-flash",
 ]
 
-
 GROQ_MODELS = [
-    "openai/gpt-oss-120b",
-    "openai/gpt-oss-20b",
-    "qwen/qwen3.6-27b",
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",
+    "mixtral-8x7b-32768",
+    "gemma2-9b-it",
 ]
-
 
 class LLMGenerationError(Exception):
     """Raised when all configured LLM providers fail."""
@@ -266,9 +265,10 @@ def call_llm(
                 err_str = str(e)
                 errors.append(f"{provider.capitalize()} {model_name}: {err_str[:200]}")
                 logger.warning("Model %s (%s) failed: %s. Cascading to next model...", model_name, provider, err_str[:120])
+                # If 401 on Gemini, stop trying other Gemini models
                 if provider == "gemini" and ("401" in err_str or "UNAUTHENTICATED" in err_str):
                     break
-                if "429" in err_str:
+                if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
                     time.sleep(1)
                 continue
 
@@ -356,8 +356,6 @@ def call_llm_text(prompt: str, model_type: str = "fast", retries: int = 1) -> st
                 errors.append(f"{provider.capitalize()} {model_name}: {err_str[:200]}")
                 if provider == "gemini" and ("401" in err_str or "UNAUTHENTICATED" in err_str):
                     break
-                if "429" in err_str:
-                    time.sleep(1)
                 continue
 
     error_summary = " | ".join(errors) if errors else "No LLM provider is configured."
