@@ -1,20 +1,14 @@
 import re
-import logging
 import concurrent.futures
 from app.learning.services.llm import call_llm
 from app.learning.services.prompts import SUBTOPIC_BREAKDOWN_PROMPT, SUBTOPIC_CONTENT_PROMPT, LESSON_QUIZ_PROMPT
 from app.learning.services.schemas import SubtopicBreakdown, SubtopicContent, LessonQuiz
 from app.learning.services.rag import store_student_embedding
 
-logger = logging.getLogger(__name__)
-
 def auto_fence_ascii_art(markdown_text: str) -> str:
     """
-    Finds:
-    1. Raw unfenced Mermaid diagrams (starting with 'mermaid', 'flowchart', 'graph', 'sequenceDiagram', etc.)
-       and wraps them in ```mermaid ... ```.
-    2. Consecutive lines of raw ASCII box drawing / flowcharts (lines with +, -, |, >, <)
-       and wraps them in ```text ... ```.
+    Finds consecutive lines of raw ASCII box drawing / flowcharts (lines with +, -, |, >, <)
+    that are outside of existing code blocks, and wraps them in ```text ... ```.
     """
     if not markdown_text:
         return ""
@@ -23,47 +17,25 @@ def auto_fence_ascii_art(markdown_text: str) -> str:
     in_code_block = False
     ascii_buffer = []
     
-    diagram_starters = ('flowchart', 'graph', 'sequencediagram', 'classdiagram', 'statediagram', 'erdiagram', 'gantt', 'journey', 'pie')
-    
-    def is_diagram_starter(line: str) -> bool:
-        trimmed = line.strip().lower()
-        if trimmed == 'mermaid':
-            return True
-        for st in diagram_starters:
-            if trimmed.startswith(st):
-                return True
-        return False
-        
-    def is_diagram_body(line: str) -> bool:
-        trimmed = line.strip()
-        if not trimmed:
-            return True
-        if trimmed.startswith('###') or trimmed.startswith('##') or re.match(r'^\d+\.\s+[A-Z\u0080-\uffff]', trimmed):
-            return False
-        if any(x in trimmed for x in ['-->', '---', '-.->', '==>', '->>', '-->>', '[', '(', '{', 'subgraph', 'end', 'participant', 'class ']):
-            return True
-        return False
-
     def is_ascii_diagram_line(line: str) -> bool:
         trimmed = line.strip()
         if not trimmed:
             return False
+        # Table rows like | col | col | shouldn't be boxed if it's a markdown table
         if re.match(r"^\|[^|]+\|.*\|$", trimmed):
             return False
+        # Box lines like +--------+ or +---+---+
         if re.match(r"^\+[-+=]+\+.*$", trimmed):
             return True
+        # Flow lines with arrows like | ---> | or +----->+ or | ===> |
         if ("| ----" in trimmed or "| --->" in trimmed or "+ --->" in trimmed or "---->" in trimmed) and ("|" in trimmed or "+" in trimmed):
             return True
         if trimmed.startswith("+--") or trimmed.endswith("--+"):
             return True
         return False
 
-    i = 0
-    while i < len(lines):
-        line = lines[i]
-        trimmed = line.strip()
-        
-        if trimmed.startswith("```"):
+    for line in lines:
+        if line.strip().startswith("```"):
             if ascii_buffer:
                 new_lines.append("```text")
                 new_lines.extend(ascii_buffer)
@@ -71,45 +43,10 @@ def auto_fence_ascii_art(markdown_text: str) -> str:
                 ascii_buffer = []
             in_code_block = not in_code_block
             new_lines.append(line)
-            i += 1
             continue
             
         if in_code_block:
             new_lines.append(line)
-            i += 1
-            continue
-            
-        # Detect unfenced Mermaid diagram
-        if is_diagram_starter(line):
-            if ascii_buffer:
-                new_lines.append("```text")
-                new_lines.extend(ascii_buffer)
-                new_lines.append("```")
-                ascii_buffer = []
-                
-            diagram_lines = []
-            if trimmed.lower() == 'mermaid':
-                i += 1
-                if i < len(lines) and is_diagram_starter(lines[i]):
-                    diagram_lines.append(lines[i].strip())
-                elif i < len(lines):
-                    diagram_lines.append(lines[i].strip())
-            else:
-                diagram_lines.append(trimmed)
-                
-            i += 1
-            while i < len(lines) and not lines[i].strip().startswith('```') and is_diagram_body(lines[i]):
-                if lines[i].strip():
-                    diagram_lines.append(lines[i].strip())
-                i += 1
-                
-            while diagram_lines and not diagram_lines[-1]:
-                diagram_lines.pop()
-                
-            if diagram_lines:
-                new_lines.append("```mermaid")
-                new_lines.extend(diagram_lines)
-                new_lines.append("```")
             continue
             
         if is_ascii_diagram_line(line):
@@ -121,8 +58,6 @@ def auto_fence_ascii_art(markdown_text: str) -> str:
                 new_lines.append("```")
                 ascii_buffer = []
             new_lines.append(line)
-            
-        i += 1
             
     if ascii_buffer:
         new_lines.append("```text")
@@ -139,7 +74,7 @@ def normalize_numerals(text: str) -> str:
     if not text:
         return ""
     devanagari_map = str.maketrans("०१२३४५६७८९", "0123456789")
-    arabic_indic_map = str.maketrans("٠١٢३٤٥٦٧٨٩", "0123456789")
+    arabic_indic_map = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
     persian_map = str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789")
     tamil_map = str.maketrans("௦௧௨௩௪௫௬௭௮௯", "0123456789")
     telugu_map = str.maketrans("౦౧౨౩౪౫౬౭౮౯", "0123456789")
@@ -225,48 +160,52 @@ def generate_full_lesson(learning_path_id: str, lesson_id: str, skill_name: str,
         return call_llm(p_str, LessonQuiz, max_tokens=2000)
 
     sections = []
-    for subtopic, prompt_str in subtopic_prompts:
-        content_data = call_llm(prompt_str, SubtopicContent, max_tokens=2500, retries=2)
-        mcq_list = []
-        if getattr(content_data, "mcqQuestions", None):
-            for m in content_data.mcqQuestions:
-                mcq_list.append({
-                    "id": m.id,
-                    "question": m.question,
-                    "options": m.options,
-                    "correctIndex": m.correctIndex,
-                    "explanation": m.explanation
-                })
-
-        cleaned_content = normalize_markdown_content(content_data.content)
-        cleaned_example = clean_code_example(content_data.example)
-
-        section_item = {
-            "subtopicId": subtopic.subtopicId,
-            "title": subtopic.title,
-            "orderIndex": subtopic.orderIndex,
-            "learningGoal": subtopic.learningGoal,
-            "content": cleaned_content,
-            "example": cleaned_example,
-            "miniCheckQuestion": content_data.miniCheckQuestion,
-            "mcqQuestions": mcq_list
-        }
-        sections.append(section_item)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        subtopic_futures = [executor.submit(fetch_subtopic_content, item) for item in subtopic_prompts]
+        quiz_future = executor.submit(fetch_quiz, quiz_prompt)
         
-        # Store embedding chunk
-        try:
-            chunk_text = f"Skill: {skill_name} | Subtopic: {subtopic.title} | Content: {cleaned_content}"
-            store_student_embedding(
-                learning_path_id=learning_path_id,
-                source_type="LESSON",
-                source_ref_id=f"{lesson_id}_{subtopic.subtopicId}",
-                chunk_text=chunk_text
-            )
-        except Exception:
-            pass
+        for future in subtopic_futures:
+            subtopic, content_data = future.result()
+            mcq_list = []
+            if getattr(content_data, "mcqQuestions", None):
+                for m in content_data.mcqQuestions:
+                    mcq_list.append({
+                        "id": m.id,
+                        "question": m.question,
+                        "options": m.options,
+                        "correctIndex": m.correctIndex,
+                        "explanation": m.explanation
+                    })
 
-    quiz = call_llm(quiz_prompt, LessonQuiz, max_tokens=2000, retries=2)
+            cleaned_content = normalize_markdown_content(content_data.content)
+            cleaned_example = clean_code_example(content_data.example)
 
+            section_item = {
+                "subtopicId": subtopic.subtopicId,
+                "title": subtopic.title,
+                "orderIndex": subtopic.orderIndex,
+                "learningGoal": subtopic.learningGoal,
+                "content": cleaned_content,
+                "example": cleaned_example,
+                "miniCheckQuestion": content_data.miniCheckQuestion,
+                "mcqQuestions": mcq_list
+            }
+            sections.append(section_item)
+            
+            # Store embedding chunk
+            try:
+                chunk_text = f"Skill: {skill_name} | Subtopic: {subtopic.title} | Content: {cleaned_content}"
+                store_student_embedding(
+                    learning_path_id=learning_path_id,
+                    source_type="LESSON",
+                    source_ref_id=f"{lesson_id}_{subtopic.subtopicId}",
+                    chunk_text=chunk_text
+                )
+            except Exception:
+                pass
+
+        quiz = quiz_future.result()
+    
     # Format questions to dict
     questions_list = []
     for q in quiz.questions:
@@ -292,11 +231,13 @@ def ensure_section_mcqs(sections: list, skill_name: str, domain: str) -> list:
     """
     Guarantees every section in the module has exactly 3 MCQ practice questions with 4 choices.
     """
-    if not sections:
+    if not sections or not isinstance(sections, list):
         return []
     
     updated_sections = []
     for idx, sec in enumerate(sections):
+        if not isinstance(sec, dict):
+            continue
         s = dict(sec)
         mcqs = list(s.get("mcqQuestions") or [])
         if len(mcqs) < 3:
