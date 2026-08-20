@@ -1,292 +1,362 @@
+import os
+import json
 import re
-import concurrent.futures
-from app.learning.services.llm import call_llm
-from app.learning.services.prompts import SUBTOPIC_BREAKDOWN_PROMPT, SUBTOPIC_CONTENT_PROMPT, LESSON_QUIZ_PROMPT
-from app.learning.services.schemas import SubtopicBreakdown, SubtopicContent, LessonQuiz
-from app.learning.services.rag import store_student_embedding
+import time
+import logging
+import requests
+from groq import Groq
+from pydantic import BaseModel
+from dotenv import load_dotenv
 
-def auto_fence_ascii_art(markdown_text: str) -> str:
-    """
-    Finds consecutive lines of raw ASCII box drawing / flowcharts (lines with +, -, |, >, <)
-    that are outside of existing code blocks, and wraps them in ```text ... ```.
-    """
-    if not markdown_text:
-        return ""
-    lines = markdown_text.split("\n")
-    new_lines = []
-    in_code_block = False
-    ascii_buffer = []
-    
-    def is_ascii_diagram_line(line: str) -> bool:
-        trimmed = line.strip()
-        if not trimmed:
-            return False
-        # Table rows like | col | col | shouldn't be boxed if it's a markdown table
-        if re.match(r"^\|[^|]+\|.*\|$", trimmed):
-            return False
-        # Box lines like +--------+ or +---+---+
-        if re.match(r"^\+[-+=]+\+.*$", trimmed):
-            return True
-        # Flow lines with arrows like | ---> | or +----->+ or | ===> |
-        if ("| ----" in trimmed or "| --->" in trimmed or "+ --->" in trimmed or "---->" in trimmed) and ("|" in trimmed or "+" in trimmed):
-            return True
-        if trimmed.startswith("+--") or trimmed.endswith("--+"):
-            return True
-        return False
+# Ensure environment variables are loaded
+load_dotenv()
 
-    for line in lines:
-        if line.strip().startswith("```"):
-            if ascii_buffer:
-                new_lines.append("```text")
-                new_lines.extend(ascii_buffer)
-                new_lines.append("```")
-                ascii_buffer = []
-            in_code_block = not in_code_block
-            new_lines.append(line)
-            continue
-            
-        if in_code_block:
-            new_lines.append(line)
-            continue
-            
-        if is_ascii_diagram_line(line):
-            ascii_buffer.append(line)
-        else:
-            if ascii_buffer:
-                new_lines.append("```text")
-                new_lines.extend(ascii_buffer)
-                new_lines.append("```")
-                ascii_buffer = []
-            new_lines.append(line)
-            
-    if ascii_buffer:
-        new_lines.append("```text")
-        new_lines.extend(ascii_buffer)
-        new_lines.append("```")
-        
-    return "\n".join(new_lines)
+logger = logging.getLogger(__name__)
 
-def normalize_numerals(text: str) -> str:
-    """
-    Converts any non-standard regional numerals (Devanagari, Eastern Arabic, Persian, Tamil, Telugu, Bengali)
-    into standard Western Arabic digits 0-9 across all courses and languages.
-    """
-    if not text:
-        return ""
-    devanagari_map = str.maketrans("०१२३४५६७८९", "0123456789")
-    arabic_indic_map = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
-    persian_map = str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789")
-    tamil_map = str.maketrans("௦௧௨௩௪௫௬௭௮௯", "0123456789")
-    telugu_map = str.maketrans("౦౧౨౩౪౫౬౭౮౯", "0123456789")
-    bengali_map = str.maketrans("০১২৩৪৫৬৭৮৯", "0123456789")
+# =====================================================================
+# 1. API CLIENT & ENVIRONMENT INITIALIZATION
+# =====================================================================
 
-    return text.translate(devanagari_map).translate(arabic_indic_map).translate(persian_map).translate(tamil_map).translate(telugu_map).translate(bengali_map)
+groq_api_key = os.environ.get("GROQ_API_KEY", "").strip("\"' \t\n\r")
+gemini_api_key = os.environ.get("GEMINI_API_KEY", "").strip("\"' \t\n\r")
 
-def normalize_markdown_content(markdown_text: str) -> str:
-    """
-    Normalizes markdown text by:
-    1. Unescaping literal '\\n' and '\\t' sequences and carriage returns.
-    2. Converting any regional numeral characters into standard Western '1, 2, 3' digits.
-    3. Cleaning up double-escaped quote artifacts in code blocks.
-    4. Auto-fencing ASCII box diagrams into ```text ... ```.
-    """
-    if not markdown_text:
-        return ""
-    
-    if "\\n" in markdown_text:
-        markdown_text = markdown_text.replace("\\r\\n", "\n").replace("\\n", "\n").replace("\\t", "\t")
-        
-    markdown_text = markdown_text.replace("\r\n", "\n").replace("\r", "\n")
-    
-    # Normalize numerals across all languages to 0-9
-    markdown_text = normalize_numerals(markdown_text)
-    
-    # Fix broken escaped quote patterns in code strings (e.g. print(f"\"\n... -> print(f"\n...)
-    markdown_text = re.sub(r'print\(f\\"[\\n|\n]', 'print(f"\\n', markdown_text)
-    markdown_text = re.sub(r'print\(f"[\\"]', 'print(f"', markdown_text)
-    
-    return auto_fence_ascii_art(markdown_text)
+# Groq Client: Set max_retries=0 so SDK never blocks worker threads with long internal sleep on 429
+groq_client = None
+if groq_api_key:
+    try:
+        groq_client = Groq(api_key=groq_api_key, max_retries=0)
+        logger.info("Groq client initialized successfully (max_retries=0).")
+    except Exception as e:
+        logger.warning("Failed to initialize Groq client: %s", e)
 
-def clean_code_example(example_text: str) -> str:
-    """
-    Cleans worked examples to ensure valid ASCII newlines, formatting, and standard Western numerals.
-    """
-    if not example_text:
-        return ""
-    if "\\n" in example_text:
-        example_text = example_text.replace("\\r\\n", "\n").replace("\\n", "\n").replace("\\t", "\t")
-    example_text = example_text.replace("\r\n", "\n").replace("\r", "\n")
-    # Clean up double-escaped quote artifacts in print statements
-    example_text = re.sub(r'print\(f\\"[\\n|\n]', 'print(f"\\n', example_text)
-    example_text = re.sub(r'print\(f"[\\"]', 'print(f"', example_text)
-    return normalize_numerals(example_text.strip())
+# Track whether Gemini API key is valid to prevent repeated 401s
+_gemini_active = bool(gemini_api_key)
 
-def generate_full_lesson(learning_path_id: str, lesson_id: str, skill_name: str, skill_description: str, tier: str, is_revision: bool, domain: str) -> dict:
-    """
-    High-speed parallel multi-section lesson generation pipeline.
-    1. Generates 3-4 focused subtopics.
-    2. Concurrently generates deep content + 3 MCQs for all subtopics + 5-question mastery quiz in parallel.
-    3. Auto-fences ASCII diagrams and renders Mermaid flowcharts.
-    4. Saves embeddings for each subtopic.
-    """
-    # Step 1: Breakdown (4 to 5 deep subtopics for full 50-min curriculum)
-    breakdown_prompt = SUBTOPIC_BREAKDOWN_PROMPT(skill_name, skill_description, tier, is_revision)
-    breakdown = call_llm(breakdown_prompt, SubtopicBreakdown, max_tokens=1500)
-    
-    selected_subtopics = breakdown.subtopics[:5] if len(breakdown.subtopics) >= 5 else breakdown.subtopics
-    
-    # Pre-render prompt strings in main thread
-    subtopic_prompts = []
-    for subtopic in selected_subtopics:
-        prompt_str = SUBTOPIC_CONTENT_PROMPT(
-            skill_name, 
-            subtopic.title, 
-            subtopic.learningGoal, 
-            tier, 
-            is_revision, 
-            domain
-        )
-        subtopic_prompts.append((subtopic, prompt_str))
-    
-    subtopic_titles = [sub.title for sub in selected_subtopics]
-    quiz_prompt = LESSON_QUIZ_PROMPT(skill_name, subtopic_titles, tier)
-    
-    def fetch_subtopic_content(item):
-        sub, p_str = item
-        data = call_llm(p_str, SubtopicContent, max_tokens=4800)
-        return sub, data
+# =====================================================================
+# 2. MODEL POOLS (Cascading Fallback Order)
+# =====================================================================
 
-    def fetch_quiz(p_str):
-        return call_llm(p_str, LessonQuiz, max_tokens=2000)
+GEMINI_MODELS = [
+    "gemini-3.5-flash-lite",
+    "gemini-3.5-flash",
+    "gemini-3.6-flash",
+    "gemini-3.7-flash",
+]
 
-    sections = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-        subtopic_futures = [executor.submit(fetch_subtopic_content, item) for item in subtopic_prompts]
-        quiz_future = executor.submit(fetch_quiz, quiz_prompt)
-        
-        for future in subtopic_futures:
-            subtopic, content_data = future.result()
-            mcq_list = []
-            if getattr(content_data, "mcqQuestions", None):
-                for m in content_data.mcqQuestions:
-                    mcq_list.append({
-                        "id": m.id,
-                        "question": m.question,
-                        "options": m.options,
-                        "correctIndex": m.correctIndex,
-                        "explanation": m.explanation
-                    })
+GROQ_MODELS = [
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",
+    "mixtral-8x7b-32768",
+    "gemma2-9b-it",
+]
 
-            cleaned_content = normalize_markdown_content(content_data.content)
-            cleaned_example = clean_code_example(content_data.example)
+class LLMGenerationError(Exception):
+    """Raised when all configured LLM providers fail."""
+    pass
 
-            section_item = {
-                "subtopicId": subtopic.subtopicId,
-                "title": subtopic.title,
-                "orderIndex": subtopic.orderIndex,
-                "learningGoal": subtopic.learningGoal,
-                "content": cleaned_content,
-                "example": cleaned_example,
-                "miniCheckQuestion": content_data.miniCheckQuestion,
-                "mcqQuestions": mcq_list
-            }
-            sections.append(section_item)
-            
-            # Store embedding chunk
-            try:
-                chunk_text = f"Skill: {skill_name} | Subtopic: {subtopic.title} | Content: {cleaned_content}"
-                store_student_embedding(
-                    learning_path_id=learning_path_id,
-                    source_type="LESSON",
-                    source_ref_id=f"{lesson_id}_{subtopic.subtopicId}",
-                    chunk_text=chunk_text
-                )
-            except Exception:
-                pass
+# =====================================================================
+# 3. JSON CLEANING & SCHEMA PARSING HELPERS
+# =====================================================================
 
-        quiz = quiz_future.result()
-    
-    # Format questions to dict
-    questions_list = []
-    for q in quiz.questions:
-        questions_list.append({
-            "id": q.id,
-            "subtopicId": q.subtopicId,
-            "question": q.question,
-            "options": q.options,
-            "correctIndex": q.correctIndex,
-            "explanation": q.explanation
-        })
-        
-    final_sections = ensure_section_mcqs(sections, skill_name, domain)
+def _clean_model_json(raw: str) -> str:
+    """Clean markdown code fences, thinking tags, and extraneous wrapping."""
+    if not raw:
+        raise ValueError("LLM returned an empty response.")
 
-    return {
-        "lessonTitle": skill_name,
-        "sections": final_sections,
-        "keyTakeaways": subtopic_titles,
-        "quiz": questions_list
+    cleaned = raw.strip()
+
+    # Strip thinking/reasoning tags
+    cleaned = re.sub(r"<think>.*?</think>", "", cleaned, flags=re.DOTALL | re.IGNORECASE)
+
+    # Strip markdown code fences
+    cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\s*```$", "", cleaned)
+    cleaned = re.sub(r"```(?:json)?", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"```", "", cleaned)
+
+    return cleaned.strip()
+
+
+def _parse_schema_response(
+    raw: str,
+    schema: type[BaseModel],
+    provider: str,
+) -> BaseModel:
+    """Parse raw LLM output into a Pydantic schema using multiple fallback strategies."""
+    cleaned = _clean_model_json(raw)
+
+    # Attempt 1: Direct Pydantic JSON validation
+    try:
+        return schema.model_validate_json(cleaned)
+    except Exception:
+        pass
+
+    # Attempt 2: Extract first JSON object/array substring
+    start_index = cleaned.find("{")
+    if start_index != -1:
+        try:
+            decoder = json.JSONDecoder(strict=False)
+            obj, _ = decoder.raw_decode(cleaned[start_index:])
+            return schema.model_validate(obj)
+        except Exception:
+            pass
+
+    # Attempt 3: Standard json.loads fallback
+    try:
+        parsed = json.loads(cleaned)
+        return schema.model_validate(parsed)
+    except Exception as e:
+        raise ValueError(
+            f"{provider} returned invalid JSON for {schema.__name__}: {cleaned[:1000]}"
+        ) from e
+
+
+# =====================================================================
+# 4. STRUCTURED CALLS (Groq & Gemini REST)
+# =====================================================================
+
+def _call_groq_json(
+    prompt: str,
+    schema: type[BaseModel],
+    model: str,
+    max_tokens: int = 4096,
+) -> BaseModel:
+    if not groq_client:
+        raise ValueError("Groq client is not initialized.")
+
+    schema_json = schema.model_json_schema()
+    schema_instruction = (
+        "\n\nSTRICT OUTPUT REQUIREMENTS:\n"
+        "1. Return ONLY a single raw valid JSON object matching the schema below.\n"
+        "2. Do NOT enclose the output in markdown code blocks or backticks.\n"
+        "3. Do NOT include any conversational intro or conclusion.\n"
+        f"JSON Schema: {json.dumps(schema_json, ensure_ascii=False)}"
+    )
+
+    call_kwargs = {
+        "model": model,
+        "messages": [
+            {
+                "role": "system",
+                "content": "You are a JSON-only API. You return strictly valid JSON matching the exact schema requested.",
+            },
+            {"role": "user", "content": prompt + schema_instruction},
+        ],
+        "temperature": 0.2,
+        "max_tokens": min(max_tokens, 4096),
     }
 
-def ensure_section_mcqs(sections: list, skill_name: str, domain: str) -> list:
+    if "qwen" in model.lower():
+        call_kwargs["reasoning_effort"] = "none"
+    elif "gpt-oss-20b" not in model.lower():
+        call_kwargs["response_format"] = {"type": "json_object"}
+
+    try:
+        completion = groq_client.chat.completions.create(**call_kwargs)
+    except Exception as e:
+        err_str = str(e)
+        # If response_format caused 400 json_validate_failed, retry without response_format
+        if "response_format" in call_kwargs and "json_validate_failed" in err_str:
+            call_kwargs.pop("response_format", None)
+            completion = groq_client.chat.completions.create(**call_kwargs)
+        else:
+            raise e
+
+    raw = completion.choices[0].message.content or ""
+    return _parse_schema_response(raw, schema, f"Groq ({model})")
+
+
+def _call_gemini_json(
+    prompt: str,
+    schema: type[BaseModel],
+    model: str,
+    max_tokens: int = 4096,
+) -> BaseModel:
+    global _gemini_active
+    if not gemini_api_key or not _gemini_active:
+        raise ValueError("GEMINI_API_KEY is not configured or is invalid.")
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    headers = {
+        "x-goog-api-key": gemini_api_key,
+        "Content-Type": "application/json",
+    }
+
+    schema_json = schema.model_json_schema()
+    schema_instruction = (
+        "\n\nSTRICT OUTPUT REQUIREMENTS:\n"
+        "1. Return ONLY valid JSON matching this schema.\n"
+        "2. Do NOT use markdown code blocks.\n"
+        f"Schema: {json.dumps(schema_json, ensure_ascii=False)}"
+    )
+
+    payload = {
+        "contents": [{"parts": [{"text": prompt + schema_instruction}]}],
+        "generationConfig": {
+            "maxOutputTokens": max_tokens,
+            "responseMimeType": "application/json",
+            "temperature": 0.2,
+        },
+    }
+
+    response = requests.post(url, headers=headers, json=payload, timeout=20)
+    if response.status_code == 401:
+        _gemini_active = False
+        raise RuntimeError("Gemini API authentication failed (401). Disabling Gemini provider.")
+    elif response.status_code != 200:
+        raise RuntimeError(f"Gemini API Error {response.status_code}: {response.text[:500]}")
+
+    data = response.json()
+    candidates = data.get("candidates", [])
+    if not candidates:
+        raise RuntimeError(f"Gemini returned no candidates: {data}")
+
+    parts = candidates[0].get("content", {}).get("parts", [])
+    if not parts:
+        raise RuntimeError(f"Gemini returned no content parts: {data}")
+
+    text = parts[0].get("text")
+    if not text:
+        raise RuntimeError("Gemini returned empty text.")
+
+    return _parse_schema_response(text, schema, f"Gemini ({model})")
+
+
+# =====================================================================
+# 5. DISPATCHERS (Structured & Conversational)
+# =====================================================================
+
+def call_llm(
+    prompt: str,
+    schema: type[BaseModel],
+    model_type: str = "thinking",
+    retries: int = 1,
+    max_tokens: int = 4096,
+) -> BaseModel:
     """
-    Guarantees every section in the module has exactly 3 MCQ practice questions with 4 choices.
+    Intelligent Dual-Engine Structured Dispatch:
+    Tries configured providers with an active model cascade pool.
+    Never blocks worker processes on rate limits; immediately cascades to alternative models.
     """
-    if not sections or not isinstance(sections, list):
-        return []
-    
-    updated_sections = []
-    for idx, sec in enumerate(sections):
-        if not isinstance(sec, dict):
-            continue
-        s = dict(sec)
-        mcqs = list(s.get("mcqQuestions") or [])
-        if len(mcqs) < 3:
-            title = s.get("title", f"Module {idx + 1}")
-            sub_id = s.get("subtopicId", f"sub_{idx + 1}")
-            
-            fallback_mcqs = [
-                {
-                    "id": f"{sub_id}_mcq_1",
-                    "question": f"What is the core concept and purpose of '{title}' in {domain}?",
-                    "options": [
-                        f"Establishes essential syntax, patterns, and principles for {title}.",
-                        f"Bypasses standard compilation rules and removes runtime safety.",
-                        f"A deprecated pattern with no functional application in modern development.",
-                        f"Restricts application execution to single-thread static modes only."
-                    ],
-                    "correctIndex": 0,
-                    "explanation": f"{title} provides the foundational structural mechanisms and best practice patterns for {domain}."
-                },
-                {
-                    "id": f"{sub_id}_mcq_2",
-                    "question": f"Which approach is recommended when writing code for '{title}'?",
-                    "options": [
-                        f"Use clear, modular, well-tested functions following best practices.",
-                        f"Place all application logic in a single monolithic global script.",
-                        f"Disable exception handling to maximize CPU clock speed.",
-                        f"Hardcode dynamic database configuration parameters directly in business logic."
-                    ],
-                    "correctIndex": 0,
-                    "explanation": f"Modular code structure and clean architecture represent the industry standard for {domain}."
-                },
-                {
-                    "id": f"{sub_id}_mcq_3",
-                    "question": f"How do production engineers prevent common traps in '{title}'?",
-                    "options": [
-                        f"Implement strict input validation, error handling, and unit test suites.",
-                        f"Ignore edge cases because they rarely occur in production environments.",
-                        f"Run code without debugging or type checking to save memory overhead.",
-                        f"Suppress all system warnings and logging outputs."
-                    ],
-                    "correctIndex": 0,
-                    "explanation": f"Defensive programming and comprehensive test coverage are essential in production {domain} systems."
-                }
-            ]
-            
-            while len(mcqs) < 3:
-                mcqs.append(fallback_mcqs[len(mcqs)])
-            s["mcqQuestions"] = mcqs
-            
-        updated_sections.append(s)
-        
-    return updated_sections
+    del retries
+    errors = []
+
+    # Priority ordering based on model_type
+    providers = []
+    if model_type == "fast":
+        if groq_client:
+            providers.append(("groq", GROQ_MODELS))
+        if gemini_api_key and _gemini_active:
+            providers.append(("gemini", GEMINI_MODELS))
+    else:
+        if gemini_api_key and _gemini_active:
+            providers.append(("gemini", GEMINI_MODELS))
+        if groq_client:
+            providers.append(("groq", GROQ_MODELS))
+
+    for provider, model_list in providers:
+        for model_name in model_list:
+            try:
+                if provider == "groq":
+                    return _call_groq_json(prompt, schema, model=model_name, max_tokens=max_tokens)
+                elif provider == "gemini":
+                    return _call_gemini_json(prompt, schema, model=model_name, max_tokens=max_tokens)
+            except Exception as e:
+                err_str = str(e)
+                errors.append(f"{provider.capitalize()} {model_name}: {err_str[:200]}")
+                logger.warning("Model %s (%s) failed: %s. Cascading to next model...", model_name, provider, err_str[:120])
+                # If 401 on Gemini, stop trying other Gemini models
+                if provider == "gemini" and ("401" in err_str or "UNAUTHENTICATED" in err_str):
+                    break
+                if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                    time.sleep(1)
+                continue
+
+    error_summary = " | ".join(errors) if errors else "No LLM provider is configured."
+    raise LLMGenerationError(f"LLM generation failed across providers: {error_summary}")
+
+
+def _call_groq_text(prompt: str, model: str, max_tokens: int = 2048) -> str:
+    if not groq_client:
+        raise ValueError("Groq client is not initialized.")
+    call_kwargs = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.4,
+        "max_tokens": max_tokens,
+    }
+    if "qwen" in model.lower():
+        call_kwargs["reasoning_effort"] = "none"
+    completion = groq_client.chat.completions.create(**call_kwargs)
+    raw = completion.choices[0].message.content or ""
+    return re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
+
+
+def _call_gemini_text(prompt: str, model: str, max_tokens: int = 2048) -> str:
+    global _gemini_active
+    if not gemini_api_key or not _gemini_active:
+        raise ValueError("GEMINI_API_KEY is not configured or is invalid.")
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    headers = {
+        "x-goog-api-key": gemini_api_key,
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "maxOutputTokens": max_tokens,
+            "temperature": 0.4,
+        },
+    }
+    response = requests.post(url, headers=headers, json=payload, timeout=20)
+    if response.status_code == 401:
+        _gemini_active = False
+        raise RuntimeError("Gemini API authentication failed (401).")
+    elif response.status_code != 200:
+        raise RuntimeError(f"Gemini API Error {response.status_code}: {response.text[:500]}")
+    data = response.json()
+    candidates = data.get("candidates", [])
+    if not candidates:
+        raise RuntimeError("Gemini returned no candidates.")
+    parts = candidates[0].get("content", {}).get("parts", [])
+    if not parts:
+        raise RuntimeError("Gemini returned no content parts.")
+    return (parts[0].get("text") or "").strip()
+
+
+def call_llm_text(prompt: str, model_type: str = "fast", retries: int = 1) -> str:
+    """
+    Intelligent Dual-Engine Text Dispatch:
+    Cascades through available Groq and Gemini models without blocking.
+    """
+    del retries
+    errors = []
+
+    providers = []
+    if model_type == "fast":
+        if groq_client:
+            providers.append(("groq", GROQ_MODELS))
+        if gemini_api_key and _gemini_active:
+            providers.append(("gemini", GEMINI_MODELS))
+    else:
+        if gemini_api_key and _gemini_active:
+            providers.append(("gemini", GEMINI_MODELS))
+        if groq_client:
+            providers.append(("groq", GROQ_MODELS))
+
+    for provider, model_list in providers:
+        for model_name in model_list:
+            try:
+                if provider == "groq":
+                    return _call_groq_text(prompt, model=model_name)
+                elif provider == "gemini":
+                    return _call_gemini_text(prompt, model=model_name)
+            except Exception as e:
+                err_str = str(e)
+                errors.append(f"{provider.capitalize()} {model_name}: {err_str[:200]}")
+                if provider == "gemini" and ("401" in err_str or "UNAUTHENTICATED" in err_str):
+                    break
+                continue
+
+    error_summary = " | ".join(errors) if errors else "No LLM provider is configured."
+    raise LLMGenerationError(f"LLM text generation failed: {error_summary}")
