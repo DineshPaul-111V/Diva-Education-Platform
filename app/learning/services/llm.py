@@ -44,9 +44,8 @@ GEMINI_MODELS = [
 ]
 
 GROQ_MODELS = [
-    "llama-3.3-70b-versatile",
-    "llama-3.1-8b-instant",
-    "mixtral-8x7b-32768",
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
     "gemma2-9b-it",
 ]
 
@@ -199,7 +198,7 @@ def _call_gemini_json(
         },
     }
 
-    response = requests.post(url, headers=headers, json=payload, timeout=20)
+    response = requests.post(url, headers=headers, json=payload, timeout=45)
     if response.status_code == 401:
         _gemini_active = False
         raise RuntimeError("Gemini API authentication failed (401). Disabling Gemini provider.")
@@ -308,7 +307,7 @@ def _call_gemini_text(prompt: str, model: str, max_tokens: int = 2048) -> str:
             "temperature": 0.4,
         },
     }
-    response = requests.post(url, headers=headers, json=payload, timeout=20)
+    response = requests.post(url, headers=headers, json=payload, timeout=45)
     if response.status_code == 401:
         _gemini_active = False
         raise RuntimeError("Gemini API authentication failed (401).")
