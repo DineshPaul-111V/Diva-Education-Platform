@@ -408,21 +408,102 @@
             }
         });
 
+        function autoFenceAsciiArtClient(markdownText) {
+            if (!markdownText) return "";
+            if (markdownText.includes('\\n')) {
+                markdownText = markdownText.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+            }
+            markdownText = markdownText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            const lines = markdownText.split("\n");
+            const newLines = [];
+            let inCodeBlock = false;
+            let asciiBuffer = [];
+            const diagramStarters = ['flowchart', 'graph', 'sequencediagram', 'classdiagram', 'statediagram', 'erdiagram', 'gantt', 'journey', 'pie'];
+
+            function isDiagramStarter(line) {
+                const t = line.trim().toLowerCase();
+                if (t === 'mermaid') return true;
+                return diagramStarters.some(st => t.startsWith(st));
+            }
+
+            function isDiagramBody(line) {
+                const t = line.trim();
+                if (!t) return true;
+                if (t.startsWith('###') || t.startsWith('##') || /^\d+\.\s+[A-Z\u0080-\uffff]/.test(t)) return false;
+                return ['-->', '---', '-.->', '==>', '->>', '-->>', '[', '(', '{', 'subgraph', 'end', 'participant', 'class '].some(x => t.includes(x));
+            }
+
+            let i = 0;
+            while (i < lines.length) {
+                const line = lines[i];
+                const trimmed = line.trim();
+                if (trimmed.startsWith("```")) {
+                    inCodeBlock = !inCodeBlock;
+                    newLines.push(line);
+                    i++;
+                    continue;
+                }
+                if (inCodeBlock) {
+                    newLines.push(line);
+                    i++;
+                    continue;
+                }
+                if (isDiagramStarter(line)) {
+                    const diagramLines = [];
+                    if (trimmed.toLowerCase() === 'mermaid') {
+                        i++;
+                        if (i < lines.length && isDiagramStarter(lines[i])) {
+                            diagramLines.push(lines[i].trim());
+                        } else if (i < lines.length) {
+                            diagramLines.push(lines[i].trim());
+                        }
+                    } else {
+                        diagramLines.push(trimmed);
+                    }
+                    i++;
+                    while (i < lines.length && !lines[i].trim().startsWith('```') && isDiagramBody(lines[i])) {
+                        if (lines[i].trim()) diagramLines.push(lines[i].trim());
+                        i++;
+                    }
+                    while (diagramLines.length > 0 && !diagramLines[diagramLines.length - 1]) diagramLines.pop();
+                    if (diagramLines.length > 0) {
+                        newLines.push("```mermaid");
+                        newLines.push(...diagramLines);
+                        newLines.push("```");
+                    }
+                    continue;
+                }
+                newLines.push(line);
+                i++;
+            }
+            return newLines.join("\n");
+        }
+
         // Parse Markdown in all sections
         const customRenderer = new marked.Renderer();
-        const defaultCodeRenderer = customRenderer.code.bind(customRenderer);
-        customRenderer.code = function(code, language) {
+        customRenderer.code = function(token, lang) {
+            let code = '';
+            let language = '';
+            if (typeof token === 'object' && token !== null) {
+                code = token.text || '';
+                language = token.lang || '';
+            } else {
+                code = token || '';
+                language = lang || '';
+            }
+            language = (language || '').trim().toLowerCase();
             if (language === 'mermaid') {
                 return `<div class="mermaid">${code}</div>`;
             }
-            return defaultCodeRenderer(code, language);
+            return `<pre><code class="language-${language || 'text'}">${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
         };
         marked.setOptions({ renderer: customRenderer, breaks: true });
 
         document.querySelectorAll('.section-markdown').forEach(el => {
             const rawMd = el.getAttribute('data-markdown');
             if (rawMd) {
-                el.innerHTML = marked.parse(rawMd);
+                const safeMd = typeof autoFenceAsciiArtClient !== 'undefined' ? autoFenceAsciiArtClient(rawMd) : rawMd;
+                el.innerHTML = marked.parse(safeMd);
             }
         });
 
@@ -430,9 +511,9 @@
         setTimeout(() => {
             const nodes = document.querySelectorAll('.mermaid');
             if (nodes.length > 0) {
-                mermaid.run({ nodes: nodes }).catch(e => console.warn(e));
+                mermaid.run({ nodes: Array.from(nodes) }).catch(e => console.warn(e));
             }
-        }, 100);
+        }, 120);
 
         // 1-Click Direct PDF File Downloader (Multi-page without clipping)
         function downloadPDFFile() {
