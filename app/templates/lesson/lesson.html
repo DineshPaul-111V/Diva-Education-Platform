@@ -963,6 +963,7 @@
                 startOnLoad: false,
                 theme: 'dark',
                 securityLevel: 'loose',
+                suppressErrorRendering: true,
                 themeVariables: {
                     darkMode: true,
                     background: '#0b0f19',
@@ -999,8 +1000,12 @@
 
         language = (language || '').trim().toLowerCase();
 
-        if (language === 'mermaid') {
-            return `<div class="mermaid">${code}</div>`;
+                if (language === 'mermaid') {
+            // Auto-quote any bracket labels that contain special characters () / & :
+            let cleanCode = code.replace(/\[([^"\]\n]+)\]/g, function (match, p1) {
+                return '["' + p1.trim() + '"]';
+            });
+            return `<div class="mermaid">${cleanCode}</div>`;
         }
 
         return `<pre><code class="language-${language || 'text'}">${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
