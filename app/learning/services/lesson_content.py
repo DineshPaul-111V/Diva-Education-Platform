@@ -186,6 +186,74 @@ def clean_code_example(example_text: str) -> str:
     example_text = re.sub(r'print\(f"[\\"]', 'print(f"', example_text)
     return normalize_numerals(example_text.strip())
 
+def sanitize_mermaid(source: str) -> str:
+    """
+    Make AI-generated Mermaid safer and more predictable.
+    """
+
+    if not source:
+        return ""
+
+    lines = []
+
+    for raw_line in source.splitlines():
+        line = raw_line.strip()
+
+        if not line:
+            continue
+
+        # Remove accidental Markdown fences
+        if line.startswith("```"):
+            continue
+
+        # Normalize common AI mistakes
+        line = line.replace("flowchart TD:", "flowchart TD")
+        line = line.replace("graph TD:", "graph TD")
+
+        # Avoid accidental HTML
+        line = line.replace("<br>", " ")
+        line = line.replace("<br/>", " ")
+        line = line.replace("<br />", " ")
+
+        lines.append(line)
+
+    if not lines:
+        return ""
+
+    first = lines[0].lower()
+
+    if not (
+        first.startswith("flowchart ")
+        or first.startswith("graph ")
+        or first.startswith("sequencediagram")
+        or first.startswith("classdiagram")
+        or first.startswith("statediagram")
+        or first.startswith("erdiagram")
+    ):
+        lines.insert(0, "flowchart TD")
+
+    return "\n".join(lines)
+
+def sanitize_mermaid_blocks(markdown_text: str) -> str:
+    if not markdown_text:
+        return ""
+
+    pattern = re.compile(
+        r"```mermaid\s*\n(.*?)```",
+        re.DOTALL | re.IGNORECASE
+    )
+
+    def replace_block(match):
+        source = match.group(1)
+        cleaned = sanitize_mermaid(source)
+
+        if not cleaned:
+            return ""
+
+        return f"```mermaid\n{cleaned}\n```"
+
+    return pattern.sub(replace_block, markdown_text)
+
 def generate_full_lesson(learning_path_id: str, lesson_id: str, skill_name: str, skill_description: str, tier: str, is_revision: bool, domain: str) -> dict:
     """
     High-speed parallel multi-section lesson generation pipeline.
@@ -239,6 +307,7 @@ def generate_full_lesson(learning_path_id: str, lesson_id: str, skill_name: str,
                 })
 
         cleaned_content = normalize_markdown_content(content_data.content)
+        cleaned_content = sanitize_mermaid_blocks(cleaned_content)
         cleaned_example = clean_code_example(content_data.example)
 
         section_item = {
