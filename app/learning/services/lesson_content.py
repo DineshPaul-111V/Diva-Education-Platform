@@ -160,7 +160,7 @@ def generate_full_lesson(learning_path_id: str, lesson_id: str, skill_name: str,
         return call_llm(p_str, LessonQuiz, max_tokens=2000)
 
     sections = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         subtopic_futures = [executor.submit(fetch_subtopic_content, item) for item in subtopic_prompts]
         quiz_future = executor.submit(fetch_quiz, quiz_prompt)
         
