@@ -37,11 +37,10 @@ _gemini_active = bool(gemini_api_key)
 # =====================================================================
 
 GEMINI_MODELS = [
-    "gemini-2.5-flash",
-    "gemini-2.0-flash",
-    "gemini-1.5-flash",
-    "gemini-3.6-flash",
     "gemini-3.5-flash-lite",
+    "gemini-3.5-flash",
+    "gemini-3.6-flash",
+    "gemini-3.7-flash",
 ]
 
 
@@ -269,6 +268,8 @@ def call_llm(
                 logger.warning("Model %s (%s) failed: %s. Cascading to next model...", model_name, provider, err_str[:120])
                 if provider == "gemini" and ("401" in err_str or "UNAUTHENTICATED" in err_str):
                     break
+                if "429" in err_str:
+                    time.sleep(1)
                 continue
 
     error_summary = " | ".join(errors) if errors else "No LLM provider is configured."
@@ -343,7 +344,7 @@ def call_llm_text(prompt: str, model_type: str = "fast", retries: int = 1) -> st
         if groq_client:
             providers.append(("groq", GROQ_MODELS))
 
-    for provider, model_list in providers:
+        for provider, model_list in providers:
         for model_name in model_list:
             try:
                 if provider == "groq":
@@ -355,6 +356,8 @@ def call_llm_text(prompt: str, model_type: str = "fast", retries: int = 1) -> st
                 errors.append(f"{provider.capitalize()} {model_name}: {err_str[:200]}")
                 if provider == "gemini" and ("401" in err_str or "UNAUTHENTICATED" in err_str):
                     break
+                if "429" in err_str:
+                    time.sleep(1)
                 continue
 
     error_summary = " | ".join(errors) if errors else "No LLM provider is configured."
