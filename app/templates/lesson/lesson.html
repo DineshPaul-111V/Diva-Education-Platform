@@ -1043,11 +1043,15 @@
         }
 
         function isDiagramBody(line) {
-            const t = line.trim();
-            if (!t) return true;
-            if (t.startsWith('###') || t.startsWith('##') || /^\d+\.\s+[A-Z\u0080-\uffff]/.test(t)) return false;
-            return ['-->', '---', '-.->', '==>', '->>', '-->>', '[', '(', '{', 'subgraph', 'end', 'participant', 'class '].some(x => t.includes(x));
-        }
+    const t = line.trim();
+    if (!t) return true;
+    if (t.startsWith('###') || t.startsWith('##') || /^\d+\.\s+[A-Z\u0080-\uffff]/.test(t)) return false;
+    return [
+        '-->', '---', '-.->', '==>', '->>', '-->>',
+        '[', '(', '{', 'subgraph', 'end', 'participant', 'class ',
+        'classDef ', 'style ', 'linkStyle ', 'direction ', '%%'
+    ].some(x => t.includes(x));
+}
 
         function isAsciiLine(line) {
             const t = line.trim();
