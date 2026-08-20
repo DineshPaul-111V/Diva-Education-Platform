@@ -501,3 +501,4 @@ Student query: "{student_message}"
 
 Respond conversationally in rich markdown. No JSON wrapper — output clean Markdown text only.
 """
+
