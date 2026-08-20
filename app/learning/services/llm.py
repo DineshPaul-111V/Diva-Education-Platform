@@ -255,17 +255,16 @@ def call_llm(
         if groq_client:
             providers.append(("groq", GROQ_MODELS))
 
-    for provider, model_list in providers:
+       for provider, model_list in providers:
         for model_name in model_list:
             try:
                 if provider == "groq":
-                    return _call_groq_json(prompt, schema, model=model_name, max_tokens=max_tokens)
+                    return _call_groq_text(prompt, model=model_name)
                 elif provider == "gemini":
-                    return _call_gemini_json(prompt, schema, model=model_name, max_tokens=max_tokens)
+                    return _call_gemini_text(prompt, model=model_name)
             except Exception as e:
                 err_str = str(e)
                 errors.append(f"{provider.capitalize()} {model_name}: {err_str[:200]}")
-                logger.warning("Model %s (%s) failed: %s. Cascading to next model...", model_name, provider, err_str[:120])
                 if provider == "gemini" and ("401" in err_str or "UNAUTHENTICATED" in err_str):
                     break
                 if "429" in err_str:
@@ -344,7 +343,7 @@ def call_llm_text(prompt: str, model_type: str = "fast", retries: int = 1) -> st
         if groq_client:
             providers.append(("groq", GROQ_MODELS))
 
-        for provider, model_list in providers:
+            for provider, model_list in providers:
         for model_name in model_list:
             try:
                 if provider == "groq":
