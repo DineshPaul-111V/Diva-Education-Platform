@@ -160,6 +160,222 @@ def normalize_numerals(text: str) -> str:
 
     return text.translate(devanagari_map).translate(arabic_indic_map).translate(persian_map).translate(tamil_map).translate(telugu_map).translate(bengali_map)
 
+# --- REPAIR PASS FUNCTIONS ---
+
+def _is_code_looking(line: str, lang: str) -> bool:
+    stripped = line.strip()
+    if not stripped:
+        return False
+    if lang == "python":
+        if PYTHON_CODE_SIGNALS.match(line):
+            return True
+        looks_like_prose = (not any(ch in stripped for ch in ["(", ")", "=", ":", "[", "]"]) or stripped[0].isupper())
+        return not looks_like_prose
+    elif lang == "mermaid":
+        valid_types = ("graph", "flowchart", "sequenceDiagram", "classDiagram", "stateDiagram", "erDiagram", "gantt", "pie", "journey", "mindmap", "timeline", "gitGraph")
+        if stripped.startswith(valid_types) or "-->" in stripped or "[" in stripped or "]" in stripped:
+            return True
+        return False
+    return False
+
+def fix_stray_language_tags(markdown_text: str) -> str:
+    if not markdown_text: return ""
+    lines = markdown_text.split('\n')
+    new_lines = []
+    in_fence = False
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            in_fence = not in_fence
+            new_lines.append(line)
+            i += 1
+            continue
+            
+        if not in_fence and stripped in ("python", "mermaid"):
+            if i + 1 < len(lines) and not lines[i+1].strip().startswith("```") and _is_code_looking(lines[i+1], stripped):
+                new_lines.append(f"```{stripped}")
+                j = i + 1
+                block_lines = 0
+                while j < len(lines) and block_lines < 40:
+                    curr = lines[j]
+                    if curr.strip().startswith("```"):
+                        break
+                    if curr.strip() == "":
+                        if j + 1 < len(lines) and not lines[j+1].strip().startswith("```") and not _is_code_looking(lines[j+1], stripped):
+                            break
+                    new_lines.append(curr)
+                    block_lines += 1
+                    j += 1
+                new_lines.append("```")
+                i = j
+                continue
+        new_lines.append(line)
+        i += 1
+    return '\n'.join(new_lines)
+
+def validate_mermaid_blocks(markdown_text: str) -> str:
+    if not markdown_text: return ""
+    pattern = re.compile(r"```mermaid\n(.*?)```", re.DOTALL)
+    error_replacement = "```mermaid\ngraph TD\n  A[Diagram unavailable] --> B[Content will regenerate on next view]\n```"
+    
+    def _validate(match):
+        code = match.group(1)
+        lines = code.strip().split('\n')
+        if not code.strip():
+            return error_replacement
+            
+        if len([l for l in lines if l.strip()]) <= 1:
+             return error_replacement
+             
+        if "Diagram Error" in code or "System Error" in code:
+             return error_replacement
+             
+        for match_label in re.finditer(r'\[([^\]]+)\]', code):
+            label = match_label.group(1)
+            is_quoted = label.strip().startswith('"') and label.strip().endswith('"')
+            if not is_quoted:
+                if ':' in label or '#' in label:
+                    return error_replacement
+                    
+        return match.group(0)
+        
+    return pattern.sub(_validate, markdown_text)
+
+def check_python_code_leak(markdown_text: str) -> str:
+    if not markdown_text: return ""
+    pattern = re.compile(r"```python\n(.*?)```", re.DOTALL)
+    replacement_body = "# Code example temporarily unavailable in this language — showing next visit\n"
+    
+    def _is_char_outside_latin1(c):
+        return ord(c) > 255
+
+    def _check_block(match):
+        code = match.group(1)
+        in_string = False
+        string_char = ''
+        triple_quote = False
+        in_comment = False
+        escape = False
+        
+        i = 0
+        while i < len(code):
+            char = code[i]
+            
+            if in_comment:
+                if char == '\n':
+                    in_comment = False
+                i += 1
+                continue
+                
+            if escape:
+                escape = False
+                i += 1
+                continue
+                
+            if char == '\\':
+                escape = True
+                i += 1
+                continue
+                
+            if not in_string:
+                if char == '#':
+                    in_comment = True
+                    i += 1
+                    continue
+                    
+                if char in ('"', "'"):
+                    in_string = True
+                    string_char = char
+                    if i + 2 < len(code) and code[i+1] == char and code[i+2] == char:
+                        triple_quote = True
+                        i += 3
+                        continue
+                    else:
+                        triple_quote = False
+                        i += 1
+                        continue
+                        
+                if _is_char_outside_latin1(char):
+                    return f"```python\n{replacement_body}```"
+            else:
+                if char == string_char:
+                    if triple_quote:
+                        if i + 2 < len(code) and code[i+1] == char and code[i+2] == char:
+                            in_string = False
+                            i += 3
+                            continue
+                    else:
+                        in_string = False
+                        i += 1
+                        continue
+            i += 1
+            
+        return match.group(0)
+        
+    return pattern.sub(_check_block, markdown_text)
+
+def fix_table_integrity(markdown_text: str) -> str:
+    if not markdown_text: return ""
+    lines = markdown_text.split('\n')
+    new_lines = []
+    in_fence = False
+    
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        
+        if line.strip().startswith("```"):
+            in_fence = not in_fence
+            new_lines.append(line)
+            i += 1
+            continue
+            
+        if not in_fence and line.strip().startswith("|"):
+            table_lines = []
+            while i < len(lines) and lines[i].strip().startswith("|") and not lines[i].strip().startswith("```"):
+                table_lines.append(lines[i])
+                i += 1
+            
+            if len(table_lines) >= 2:
+                header_pipes = table_lines[0].count("|")
+                is_broken = False
+                for t_line in table_lines:
+                    if t_line.count("|") != header_pipes:
+                        is_broken = True
+                        break
+                        
+                if is_broken:
+                    for t_line in table_lines:
+                        if re.match(r"^\|?[\s\-:|]+\|?$", t_line.strip()):
+                            continue
+                        inner = t_line.strip().strip('|')
+                        cells = [c.strip() for c in inner.split('|')]
+                        row_text = " — ".join(cells)
+                        if row_text.strip():
+                            new_lines.append(f"- {row_text}")
+                else:
+                    new_lines.extend(table_lines)
+            else:
+                new_lines.extend(table_lines)
+            continue
+            
+        new_lines.append(line)
+        i += 1
+        
+    return '\n'.join(new_lines)
+
+# Last-line-of-defense repair pass for LLM formatting drift, not a replacement for prompt quality.
+def repair_lesson_output(markdown_text: str) -> str:
+    if not markdown_text:
+        return ""
+    text = fix_stray_language_tags(markdown_text)
+    text = validate_mermaid_blocks(text)
+    text = check_python_code_leak(text)
+    text = fix_table_integrity(text)
+    return text
+
 def normalize_markdown_content(markdown_text: str) -> str:
     if not markdown_text:
         return ""
@@ -176,7 +392,9 @@ def normalize_markdown_content(markdown_text: str) -> str:
     markdown_text = fix_all_code_blocks(markdown_text)
     markdown_text = fix_mermaid_blocks(markdown_text)
     
-    return auto_fence_ascii_art(markdown_text)
+    markdown_text = auto_fence_ascii_art(markdown_text)
+    
+    return repair_lesson_output(markdown_text)
 
 def clean_code_example(example_text: str) -> str:
     """

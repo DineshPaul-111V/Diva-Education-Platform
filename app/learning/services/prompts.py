@@ -32,7 +32,7 @@ def get_language_instruction(lang_override: str = None) -> str:
             return f"""
 
 CRITICAL MULTI-LINGUAL PEDAGOGY RULES ({lang.upper()} TRANSLATION):
-1. NARRATIVE TUTORIALS & EXPLANATIONS: Write all narrative explanations, conceptual analogies, topic breakdowns, trap explanations, and multiple-choice questions in natural, clear {lang}.
+1. STRICT TARGET LANGUAGE ONLY FOR ALL TEXT: You MUST write ALL narrative explanations, Markdown headings (translate them!), bullet points, conceptual analogies, topic breakdowns, trap explanations, and multiple-choice questions ENTIRELY in {lang}. Do not mix with English sentences.
 {specific_guidelines}
 2. ALL CODE BLOCKS & RUN PLACES MUST BE 100% PURE ENGLISH:
    - ALL programming code in ```python ... ```, ```javascript ... ```, ```sql ... ```, worked examples (`example` field), and syntax blocks MUST BE 100% PURE ENGLISH.
@@ -281,51 +281,51 @@ MANDATORY PEDAGOGICAL SPECIFICATIONS (Diva Ideas 8-Part Deep Mastery & High-Rete
 1. CLARITY & ACCESSIBILITY FOR EVERY LEARNER: Explain concepts using simple, vivid, intuitive language. Break down complex mechanics into first principles. Explain what it is, why it was invented, and how it works under the hood before showing code.
 2. MAXIMUM EDUCATIONAL DEPTH: Write 1,200–1,800 words of thorough, articulated educational content. Walk through every concept step-by-step. Do not summarize, truncate, or skip steps. CRITICAL: You MUST preserve exact indentation (using spaces) inside all code blocks.
 3. LONG-TERM MEMORY RETENTION: Use mnemonic anchors, physical everyday analogies, and comparison tables so students can easily remember and distinguish concepts.
-4. MANDATORY 8-PART CHAPTER STRUCTURE (You MUST include all 8 exact Markdown headings in your content):
+4. MANDATORY 8-PART CHAPTER STRUCTURE (You MUST include all 8 Markdown headings, translated into the target language, but keeping the exact structural flow and emojis):
 
-   ### 1. 📖 Intuitive Mental Model & Real-World Anchor (Zero Jargon)
+   ### 1. 📖 [TRANSLATE THIS HEADING: Intuitive Mental Model & Real-World Anchor]
    - The "Why This Exists" First Principle: What everyday computational challenge led to this concept?
    - The Real-World Physical Analogy: A vivid everyday metaphor (e.g. kitchen recipes, postal sorting, grocery shopping list, library index) that makes the concept click instantly.
    - Core Definition in Plain English: Clear, jargon-free technical explanation.
 
-   ### 2. ⚡ Syntax Blueprint & Parameter Mechanics (Diva Ideas Standard)
+   ### 2. ⚡ [TRANSLATE THIS HEADING: Syntax Blueprint & Parameter Mechanics]
    - Clean, formal syntax structure with annotated types, arguments, and return values.
    - Minimalist Baseline ("Hello World"): The simplest possible valid execution.
    - Parameter & Option Table: Markdown table detailing `Parameter`, `Type`, `Purpose`, and `Default / Rules`.
 
-   ### 3. 💻 Step-by-Step Code Walkthrough (Beginner ➔ Pro Evolution)
+   ### 3. 💻 [TRANSLATE THIS HEADING: Step-by-Step Code Walkthrough]
    - 3 progressive, runnable code examples:
      - Level 1: Minimal Core Usage
-     - Level 2: Practical Transformation with Edge Case Handling (nulls, empty inputs, boundary bounds)
-     - Level 3: Production Scenario (clean idioms, type annotations, error handling)
+     - Level 2: Practical Transformation with Edge Case Handling
+     - Level 3: Production Scenario
    - CRITICAL REQUIREMENT: Every single code example MUST be wrapped in triple backticks with the `python` language identifier (i.e. ```python ... ```). NEVER output raw code without backticks.
    - High-quality code with exhaustive inline comments explaining why each line exists.
    - Explicit **Expected Output** block below every code example showing what prints to console.
    - Execution Stepper: Step-by-step breakdown of how state changes in memory line-by-line during runtime.
 
-   ### 4. 📊 Visual Architecture & State Flow (Mermaid.js Diagram)
+   ### 4. 📊 [TRANSLATE THIS HEADING: Visual Architecture & State Flow]
    - A clean, beautiful vector diagram in dark-theme Mermaid syntax (`flowchart TD`, `graph LR`, or `sequenceDiagram`) visualizing data transformation, variables, or execution branching.
    - CRITICAL: NEVER output raw unfenced ASCII art. Use ONLY fenced ```mermaid ... ``` or ```text ... ``` blocks.
 
-   ### 5. 🧠 Memory Hooks, Mnemonics & Disambiguation Matrix (Remember Forever)
+   ### 5. 🧠 [TRANSLATE THIS HEADING: Memory Hooks, Mnemonics & Disambiguation Matrix]
    - The "Golden Rule of Thumb": A memorable 1-sentence mental anchor.
    - Mnemonic Acronym or Rhyme: An easy-to-remember phrase or acronym to recall syntax rules or steps under pressure.
    - Concept Comparison Table: A Markdown table comparing this concept against 2 common alternatives, eliminating confusion.
 
-   ### 6. ⚠️ Common Beginner Traps & Anti-Pattern Matrix
-   - Detail at least 2 common beginner traps, syntax mistakes, or silent bugs.
-   - Format systematically with:
+   ### 6. ⚠️ [TRANSLATE THIS HEADING: Common Beginner Traps & Anti-Pattern Matrix]
+   - Detail at least 2 common beginner traps, syntax mistakes, or silent bugs. Even when showing "wrong code", the wrong code MUST be entirely in English characters.
+   - Format systematically with (TRANSLATE THESE SUBHEADINGS TOO):
      - ❌ **Wrong Code / Anti-Pattern** (what causes errors or bugs)
      - 💥 **What Goes Wrong** (specific error or unintended behavior)
      - ✅ **Correct Production Solution** (idiomatic fix)
      - 💡 **Why this fix works** (underlying reason)
 
-   ### 7. 🚀 Pro-Level Best Practices, Big-O Complexity & Industry Scale
+   ### 7. 🚀 [TRANSLATE THIS HEADING: Pro-Level Best Practices, Big-O Complexity & Industry Scale]
    - Algorithmic Complexity: Time Complexity $O(...)$ and Space Complexity $O(...)$ with intuitive reasons why.
    - Production Best Practices: Clean code conventions, naming rules, and error handling.
    - Real-World Industry Case Study: How real engineering teams leverage this concept in production.
 
-   ### 8. 📌 60-Second Memory Card & Cheat Sheet
+   ### 8. 📌 [TRANSLATE THIS HEADING: 60-Second Memory Card & Cheat Sheet]
    - 3–4 key takeaway bullet points summarizing the core rules.
    - Quick-reference syntax cheat snippet for instant recall before quizzes.
 
