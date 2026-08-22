@@ -54,9 +54,11 @@ def SKILL_MAP_PROMPT(domain: str) -> str:
     return f"""You are a principal curriculum architect and distinguished technical authority in "{domain}".
 Produce an exhaustive, industry-grade canonical skill map a student needs to master from absolute zero beginner to principal/staff engineer level in this domain.
 
-Organize skills into exactly 4 tiers: "Beginner", "Intermediate", "Advanced", "Pro".
+Organize skills into exactly 4 tiers in this strict order: "Beginner", "Intermediate", "Advanced", "Pro".
+CRITICAL REQUIREMENT: You MUST include the "Pro" tier. Failure to include the "Pro" tier will break the system curriculum mapping.
 Each tier MUST contain 5 to 8 concrete, modern, highly specific, and actionable skills/classes covering the complete modern ecosystem (foundations, language/framework mechanics, tooling, debugging, system design, and production engineering).
 Ensure skills within each tier are sequenced in strict prerequisite order from ground-up foundations to complex topics.
+CRITICAL COVERAGE RULE: A skill map is incomplete if it only covers "impressive" architecture and performance topics while skipping practical, job-critical skills. Across the Intermediate and Advanced tiers combined, you MUST include at least one skill from EACH of these categories if they are relevant to "{domain}": (a) accessibility/a11y and semantic/inclusive design, (b) build tooling, bundlers, and dev environment configuration, (c) error handling and resilience patterns (e.g. error boundaries, retries, fallback states), (d) automated testing strategy, (e) CI/CD and deployment workflow. Sequence testing-related skills as early as reasonably possible (do not push them to the very end of Advanced) since good testing habits should apply to everything taught afterward.
 
 Return strictly valid JSON, no prose, matching this schema:
 {{
@@ -88,9 +90,10 @@ def DIAGNOSTIC_PROMPT(domain: str, skill_map_dict: dict) -> str:
 {json.dumps(skill_map_dict)}
 
 Generate an adaptive placement assessment of exactly 8 questions that samples across ALL FOUR
-tiers (aim for 2 Beginner, 2 Intermediate, 2 Advanced, 2 Pro questions) so we can accurately
+tiers (exactly 2 Beginner, 2 Intermediate, 2 Advanced, 2 Pro questions) so we can accurately
 detect which tier the student is actually performing at. Tag each question with the skillId
 and tier it tests. Increase conceptual depth within each tier.
+CRITICAL REQUIREMENT: You MUST include questions with "tier": "Pro".
 
 For each question:
 - Provide 4 distinct, plausible options in the "options" array.
@@ -232,7 +235,10 @@ Return strictly valid JSON, no prose:
 # ==========================================
 # 5. PER-SUBTOPIC DEEP CONTENT PROMPT (Diva Ideas 8-Part Masterclass & Retention Standard)
 # ==========================================
-def SUBTOPIC_CONTENT_PROMPT(skill_name: str, subtopic_title: str, learning_goal: str, tier: str, is_revision: bool, domain_context: str) -> str:
+# ==========================================
+# 5. PER-SUBTOPIC DEEP CONTENT PROMPT (Diva Ideas 8-Part Masterclass & Retention Standard)
+# ==========================================
+def SUBTOPIC_CONTENT_PROMPT(skill_name: str, subtopic_title: str, learning_goal: str, tier: str, is_revision: bool, domain_context: str, already_covered_summary: str = "") -> str:
     tier_guideline = ""
     if tier.lower() == "beginner":
         tier_guideline = """
@@ -252,15 +258,28 @@ ADVANCED TIER CONSTRAINTS:
 - Cover high-performance architecture, concurrency, memory layout, Big-O algorithmic scaling, and distributed enterprise scale.
 """
 
+    # NEW: only added when there is prior subtopic history to avoid repeating
+    redundancy_guard = ""
+    if already_covered_summary.strip():
+        redundancy_guard = f"""
+CRITICAL ANTI-REDUNDANCY RULE:
+The following concepts, examples, and code patterns were ALREADY taught in earlier subtopics of this same module:
+\"\"\"
+{already_covered_summary}
+\"\"\"
+Do NOT re-teach, re-explain, or re-demonstrate any of the above from scratch. If this subtopic's learning goal genuinely requires referencing one of these concepts, mention it in one short sentence ("as you saw earlier with let/const...") and move on immediately to NEW material. Every code example, analogy, and trap in this subtopic must introduce something the student has NOT already seen in this module. Overlap with prior subtopics is a critical failure of this task.
+"""
+
     return f"""You are Diva AI, a master technical educator and principal software architect authoring an exhaustive, highly memorable masterclass chapter for "{skill_name}" within a {domain_context} course (Tier: {tier}).
 Write a complete, deeply engaging, crystal-clear instructional chapter for: "{subtopic_title}".
 Learning goal: {learning_goal}
 
 {tier_guideline}
+{redundancy_guard}
 
 MANDATORY PEDAGOGICAL SPECIFICATIONS (Diva Ideas 8-Part Deep Mastery & High-Retention Standard):
 1. CLARITY & ACCESSIBILITY FOR EVERY LEARNER: Explain concepts using simple, vivid, intuitive language. Break down complex mechanics into first principles. Explain what it is, why it was invented, and how it works under the hood before showing code.
-2. MAXIMUM EDUCATIONAL DEPTH: Write 1,200–1,800 words of thorough, articulated educational content. Walk through every concept step-by-step. Do not summarize, truncate, or skip steps. Use REAL newlines in markdown, NOT literal text '\\n'.
+2. MAXIMUM EDUCATIONAL DEPTH: Write 1,200–1,800 words of thorough, articulated educational content. Walk through every concept step-by-step. Do not summarize, truncate, or skip steps. CRITICAL: You MUST preserve exact indentation (using spaces) inside all code blocks.
 3. LONG-TERM MEMORY RETENTION: Use mnemonic anchors, physical everyday analogies, and comparison tables so students can easily remember and distinguish concepts.
 4. MANDATORY 8-PART CHAPTER STRUCTURE (You MUST include all 8 exact Markdown headings in your content):
 
@@ -279,6 +298,7 @@ MANDATORY PEDAGOGICAL SPECIFICATIONS (Diva Ideas 8-Part Deep Mastery & High-Rete
      - Level 1: Minimal Core Usage
      - Level 2: Practical Transformation with Edge Case Handling (nulls, empty inputs, boundary bounds)
      - Level 3: Production Scenario (clean idioms, type annotations, error handling)
+   - CRITICAL REQUIREMENT: Every single code example MUST be wrapped in triple backticks with the `python` language identifier (i.e. ```python ... ```). NEVER output raw code without backticks.
    - High-quality code with exhaustive inline comments explaining why each line exists.
    - Explicit **Expected Output** block below every code example showing what prints to console.
    - Execution Stepper: Step-by-step breakdown of how state changes in memory line-by-line during runtime.
@@ -309,9 +329,32 @@ MANDATORY PEDAGOGICAL SPECIFICATIONS (Diva Ideas 8-Part Deep Mastery & High-Rete
    - 3–4 key takeaway bullet points summarizing the core rules.
    - Quick-reference syntax cheat snippet for instant recall before quizzes.
 
-5. WORKED EXAMPLE: Provide a full, self-contained runnable code snippet demonstrating best practices.
-6. MODULE PRACTICE: Generate EXACTLY 3 multiple-choice practice questions (MCQs) directly evaluating deep comprehension of this module (4 distinct plausible choices each, with a 0-indexed correctIndex and thorough explanatory rationale).
-7. CHECK-IN REFLECTION: Provide one targeted diagnostic question to test comprehension.
+5. CRITICAL CODE FORMATTING RULES (STRICTLY ENFORCED FOR ALL CODE BLOCKS):
+   - Every code block MUST use exactly 4 spaces per indentation level. NEVER flatten indented
+     blocks (if/for/while/def/class/try bodies) to the left margin. A line inside an "if" or
+     "for" block must visually start 4 spaces deeper than the block header that opens it.
+   - Every line of narration, explanation, or step description that appears INSIDE a fenced
+     code block (```python ... ```) MUST start with a Python comment marker "# ". NEVER write
+     a bare English sentence like "Level 1: Displaying a simple greeting" on its own line
+     inside a code fence without a leading "#". If it is not valid, executable Python syntax,
+     it must be a "#" comment.
+   - Example of what NOT to do:
+```python
+     Level 1: Spot the missing colon
+     score = 85
+     if score >= 80
+     print("Great job!")
+```
+   - Example of the REQUIRED correct format:
+```python
+     # Level 1: Spot the missing colon
+     score = 85
+     if score >= 80:
+         print("Great job!")
+```
+6. WORKED EXAMPLE: Provide a full, self-contained runnable code snippet demonstrating best practices.
+7. MODULE PRACTICE: Generate EXACTLY 3 multiple-choice practice questions (MCQs) directly evaluating deep comprehension of this module (4 distinct plausible choices each, with a 0-indexed correctIndex and thorough explanatory rationale).
+8. CHECK-IN REFLECTION: Provide one targeted diagnostic question to test comprehension.
 {get_language_instruction()}
 
 Return strictly valid JSON, no prose:
@@ -346,9 +389,6 @@ Return strictly valid JSON, no prose:
 }}
 """
 
-# ==========================================
-# 6. LESSON QUIZ PROMPT (50-Minute Comprehensive Mastery Standard)
-# ==========================================
 def LESSON_QUIZ_PROMPT(skill_name: str, subtopic_titles: list, tier: str) -> str:
     subtopics_str = ", ".join(subtopic_titles)
     return f"""Create a 5-question multiple-choice comprehensive mastery quiz for the 50-minute module "{skill_name}" (tier: {tier}).

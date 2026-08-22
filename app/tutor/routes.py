@@ -46,13 +46,13 @@ def chat():
     if learning_path_id:
         path = LearningPath.query.get(learning_path_id)
         if path and path.user_id == current_user.id:
-            raw_chunks = retrieve_student_context(learning_path_id, message, top_k=2)
+            raw_chunks = retrieve_student_context(learning_path_id, message, top_k=4)
             retrieved_chunks = [c[:750] for c in raw_chunks]
     else:
         # Fallback to the user's latest active learning path if available
         latest_path = LearningPath.query.filter_by(user_id=current_user.id).order_by(LearningPath.created_at.desc()).first()
         if latest_path:
-            raw_chunks = retrieve_student_context(latest_path.id, message, top_k=2)
+            raw_chunks = retrieve_student_context(latest_path.id, message, top_k=4)
             retrieved_chunks = [c[:750] for c in raw_chunks]
 
     # Detect requested language from message, payload or cookie

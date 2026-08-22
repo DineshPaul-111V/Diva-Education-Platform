@@ -1075,7 +1075,8 @@
 
         speakText(text, lang = null, msgId = null, onDone = null) {
             this.stop();
-            const clean = text.replace(/[#*`_\[\]\(\)>-]/g, ' ').replace(/\s+/g, ' ').trim();
+            // Preserve newlines by only replacing spaces, tabs, and carriage returns. This ensures the split by \n works for bulleted lists.
+            const clean = text.replace(/[#*`_\[\]\(\)>-]/g, ' ').replace(/[ \t\r]+/g, ' ').trim();
             if (!clean) return;
 
             const gen = this.generationId;
@@ -1083,12 +1084,26 @@
             this.activeLanguage = targetLang;
             this.activePlayingMsgId = msgId;
 
-            // Split into sentences
-            const rawChunks = clean.split(/(?<=[.?!।\n;])\s+/);
+            // Split into sentences (now including commas and colons to prevent Google TTS 200-char limits)
+            const rawChunks = clean.split(/(?<=[.?!।\n;:,])\s+/);
             this.queue = [];
             for (let c of rawChunks) {
                 const s = c.trim();
-                if (s && s.length > 1) this.queue.push(s);
+                if (s && s.length > 1) {
+                    // Force split chunks larger than 190 characters by the nearest space
+                    if (s.length > 190) {
+                        let current = s;
+                        while (current.length > 190) {
+                            let splitAt = current.lastIndexOf(' ', 190);
+                            if (splitAt === -1) splitAt = 190;
+                            this.queue.push(current.substring(0, splitAt).trim());
+                            current = current.substring(splitAt).trim();
+                        }
+                        if (current.length > 0) this.queue.push(current);
+                    } else {
+                        this.queue.push(s);
+                    }
+                }
             }
             if (this.queue.length === 0) this.queue.push(clean);
 

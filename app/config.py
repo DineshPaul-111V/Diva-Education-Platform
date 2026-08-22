@@ -45,11 +45,23 @@ class Config:
     # Session configurations
     PERMANENT_SESSION_LIFETIME = timedelta(days=int(os.environ.get("PERMANENT_SESSION_LIFETIME_DAYS", 7)))
     
-    # Groq & Gemini API configs
-    GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "").strip("\"' \t\n\r")
-    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip("\"' \t\n\r")
+    # Groq & Gemini & HF API configs
+    GROQ_API_KEYS = os.environ.get("GROQ_API_KEYS", os.environ.get("GROQ_API_KEY", "")).strip("\"' \t\n\r")
+    GEMINI_API_KEYS = os.environ.get("GEMINI_API_KEYS", os.environ.get("GEMINI_API_KEY", "")).strip("\"' \t\n\r")
+    OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "").strip("\"' \t\n\r")
+    HF_TOKENS = os.environ.get("HF_TOKENS", os.environ.get("HF_TOKEN", "")).strip("\"' \t\n\r")
+    
     LLM_MODEL = os.environ.get("LLM_MODEL", "llama-3.3-70b-versatile").strip("\"' \t\n\r")
+    
+    # LLM Cache config
+    LLM_CACHE_TTL = int(os.environ.get("LLM_CACHE_TTL", 300))
+    
+    # Provider cascade priorities
+    PROVIDERS = {
+        "fast": ["groq", "gemini", "openrouter", "huggingface"],
+        "reasoning": ["gemini", "groq", "openrouter", "huggingface"],
+        "embedding": ["huggingface"]
+    }
     
     # Mastery Threshold
     MASTERY_THRESHOLD = float(os.environ.get("MASTERY_THRESHOLD", 70.0))
-

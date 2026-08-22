@@ -767,8 +767,8 @@ def voice_tts():
     if not text:
         return Response(b"", mimetype="audio/mpeg")
     
-    # Cap text length per chunk
-    text = text[:300]
+    # Cap text length per chunk strictly under Google's 200-character limit
+    text = text[:199]
     lang_code = TTS_LANG_MAP.get(lang, 'en')
     encoded_q = urllib.parse.quote(text, safe='')
     url = f"https://translate.google.com/translate_tts?ie=UTF-8&tl={lang_code}&client=tw-ob&q={encoded_q}"

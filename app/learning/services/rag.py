@@ -79,11 +79,18 @@ def retrieve_student_context(learning_path_id: str, query_text: str, top_k: int 
         if not stored:
             return []
             
+        query_text_lower = query_text.lower()
+        has_file_keywords = any(kw in query_text_lower for kw in ["upload", "file", "document", "resume", "cv", "notes", "pdf"])
+            
         scored = []
         for item in stored:
             try:
                 item_vec = json.loads(item.embedding_json)
                 score = cosine_similarity(query_vector, item_vec)
+                
+                # Ensure uploaded files are prioritized if the user explicitly asks about them
+                if item.source_type == "DOCUMENT" and has_file_keywords:
+                    score += 0.5
             except Exception:
                 score = 0.0
             scored.append({

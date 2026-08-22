@@ -8,6 +8,11 @@ from groq import Groq
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
+from app.config import Config
+from app.learning.services.key_manager import KeyPool
+from app.learning.services.cache import get_cached_response, set_cached_response
+from app.learning.services.fallback_manager import FallbackStateManager
+
 # Ensure environment variables are loaded
 load_dotenv()
 
@@ -17,36 +22,31 @@ logger = logging.getLogger(__name__)
 # 1. API CLIENT & ENVIRONMENT INITIALIZATION
 # =====================================================================
 
-groq_api_key = os.environ.get("GROQ_API_KEY", "").strip("\"' \t\n\r")
-gemini_api_key = os.environ.get("GEMINI_API_KEY", "").strip("\"' \t\n\r")
+# Initialize Key Pools
+groq_pool = KeyPool("Groq", Config.GROQ_API_KEYS)
+gemini_pool = KeyPool("Gemini", Config.GEMINI_API_KEYS)
+hf_pool = KeyPool("HuggingFace", Config.HF_TOKENS)
 
-# Groq Client: Set max_retries=0 so SDK never blocks worker threads with long internal sleep on 429
-groq_client = None
-if groq_api_key:
-    try:
-        groq_client = Groq(api_key=groq_api_key, max_retries=0)
-        logger.info("Groq client initialized successfully (max_retries=0).")
-    except Exception as e:
-        logger.warning("Failed to initialize Groq client: %s", e)
-
-# Track whether Gemini API key is valid to prevent repeated 401s
-_gemini_active = bool(gemini_api_key)
 
 # =====================================================================
 # 2. MODEL POOLS (Cascading Fallback Order)
 # =====================================================================
 
 GEMINI_MODELS = [
-    "gemini-3.5-flash-lite",
-    "gemini-3.5-flash",
+    "gemini-2.5-flash",       # confirmed working, cheap, fast
+    "gemini-3.5-flash-lite",  # cheapest of the 3.x family
     "gemini-3.6-flash",
-    "gemini-3.7-flash",
+    "gemini-3.7-flash",       # most capable, use last/only if needed
 ]
 
 GROQ_MODELS = [
     "openai/gpt-oss-120b",
     "openai/gpt-oss-20b",
     "gemma2-9b-it",
+]
+
+HF_MODELS = [
+    "meta-llama/Meta-Llama-3-8B-Instruct",
 ]
 
 class LLMGenerationError(Exception):
@@ -118,10 +118,13 @@ def _call_groq_json(
     prompt: str,
     schema: type[BaseModel],
     model: str,
+    api_key: str,
     max_tokens: int = 4096,
 ) -> BaseModel:
-    if not groq_client:
-        raise ValueError("Groq client is not initialized.")
+    if not api_key:
+        raise ValueError("Groq API key is missing.")
+    
+    groq_client = Groq(api_key=api_key, max_retries=0, timeout=15.0)
 
     schema_json = schema.model_json_schema()
     schema_instruction = (
@@ -129,6 +132,7 @@ def _call_groq_json(
         "1. Return ONLY a single raw valid JSON object matching the schema below.\n"
         "2. Do NOT enclose the output in markdown code blocks or backticks.\n"
         "3. Do NOT include any conversational intro or conclusion.\n"
+        "4. CRITICAL: Preserve all indentation spaces in code blocks. Escape newlines properly as \\n.\n"
         f"JSON Schema: {json.dumps(schema_json, ensure_ascii=False)}"
     )
 
@@ -169,15 +173,15 @@ def _call_gemini_json(
     prompt: str,
     schema: type[BaseModel],
     model: str,
+    api_key: str,
     max_tokens: int = 4096,
 ) -> BaseModel:
-    global _gemini_active
-    if not gemini_api_key or not _gemini_active:
-        raise ValueError("GEMINI_API_KEY is not configured or is invalid.")
+    if not api_key:
+        raise ValueError("Gemini API key is missing.")
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     headers = {
-        "x-goog-api-key": gemini_api_key,
+        "x-goog-api-key": api_key,
         "Content-Type": "application/json",
     }
 
@@ -186,6 +190,7 @@ def _call_gemini_json(
         "\n\nSTRICT OUTPUT REQUIREMENTS:\n"
         "1. Return ONLY valid JSON matching this schema.\n"
         "2. Do NOT use markdown code blocks.\n"
+        "3. CRITICAL: Preserve all indentation spaces in code blocks. Escape newlines properly as \\n.\n"
         f"Schema: {json.dumps(schema_json, ensure_ascii=False)}"
     )
 
@@ -193,15 +198,14 @@ def _call_gemini_json(
         "contents": [{"parts": [{"text": prompt + schema_instruction}]}],
         "generationConfig": {
             "maxOutputTokens": max_tokens,
-            "responseMimeType": "application/json",
             "temperature": 0.2,
+            "responseMimeType": "application/json",
         },
     }
 
-    response = requests.post(url, headers=headers, json=payload, timeout=45)
+    response = requests.post(url, headers=headers, json=payload, timeout=20.0)
     if response.status_code == 401:
-        _gemini_active = False
-        raise RuntimeError("Gemini API authentication failed (401). Disabling Gemini provider.")
+        raise RuntimeError("Gemini API authentication failed (401).")
     elif response.status_code != 200:
         raise RuntimeError(f"Gemini API Error {response.status_code}: {response.text[:500]}")
 
@@ -221,6 +225,79 @@ def _call_gemini_json(
     return _parse_schema_response(text, schema, f"Gemini ({model})")
 
 
+def _call_hf_json(
+    prompt: str,
+    schema: type[BaseModel],
+    model: str,
+    api_key: str,
+    max_tokens: int = 4096,
+) -> BaseModel:
+    if not api_key:
+        raise ValueError("Hugging Face API key is missing.")
+
+    url = f"https://api-inference.huggingface.co/models/{model}/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    
+    schema_json = schema.model_json_schema()
+    schema_instruction = (
+        "\n\nSTRICT OUTPUT REQUIREMENTS:\n"
+        "1. Return ONLY a single raw valid JSON object matching the schema below.\n"
+        "2. Do NOT enclose the output in markdown code blocks or backticks.\n"
+        "3. Do NOT include any conversational intro or conclusion.\n"
+        "4. CRITICAL: Preserve all indentation spaces in code blocks. Escape newlines properly as \\n.\n"
+        f"JSON Schema: {json.dumps(schema_json, ensure_ascii=False)}"
+    )
+
+    payload = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt + schema_instruction}],
+        "max_tokens": min(max_tokens, 4096),
+        "temperature": 0.2
+    }
+
+    response = requests.post(url, headers=headers, json=payload, timeout=20.0)
+    if response.status_code != 200:
+        raise RuntimeError(f"HF API Error {response.status_code}: {response.text[:500]}")
+    
+    data = response.json()
+    if not data.get("choices"):
+        raise RuntimeError(f"HF returned no choices: {data}")
+        
+    text = data["choices"][0]["message"]["content"]
+    return _parse_schema_response(text, schema, f"HuggingFace ({model})")
+
+
+def _call_hf_text(prompt: str, model: str, api_key: str, max_tokens: int = 2048) -> str:
+    if not api_key:
+        raise ValueError("Hugging Face API key is missing.")
+
+    url = f"https://api-inference.huggingface.co/models/{model}/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": max_tokens,
+        "temperature": 0.4
+    }
+
+    response = requests.post(url, headers=headers, json=payload, timeout=20.0)
+    if response.status_code != 200:
+        raise RuntimeError(f"HF API Error {response.status_code}: {response.text[:500]}")
+    
+    data = response.json()
+    if not data.get("choices"):
+        raise RuntimeError(f"HF returned no choices: {data}")
+        
+    raw = data["choices"][0]["message"]["content"]
+    return re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
+
+
 # =====================================================================
 # 5. DISPATCHERS (Structured & Conversational)
 # =====================================================================
@@ -228,56 +305,89 @@ def _call_gemini_json(
 def call_llm(
     prompt: str,
     schema: type[BaseModel],
-    model_type: str = "thinking",
+    model_type: str = "fast",
     retries: int = 1,
     max_tokens: int = 4096,
 ) -> BaseModel:
     """
     Intelligent Dual-Engine Structured Dispatch:
     Tries configured providers with an active model cascade pool.
-    Never blocks worker processes on rate limits; immediately cascades to alternative models.
     """
     del retries
+    
+    # 1. Check cache
+    cached = get_cached_response(prompt, schema.__name__, model_type)
+    if cached:
+        return cached
+
     errors = []
+    
+    # 2. Get provider priority from config
+    provider_priority = Config.PROVIDERS.get(model_type, Config.PROVIDERS["fast"])
 
-    # Priority ordering based on model_type
-    providers = []
-    if model_type == "fast":
-        if groq_client:
-            providers.append(("groq", GROQ_MODELS))
-        if gemini_api_key and _gemini_active:
-            providers.append(("gemini", GEMINI_MODELS))
-    else:
-        if gemini_api_key and _gemini_active:
-            providers.append(("gemini", GEMINI_MODELS))
-        if groq_client:
-            providers.append(("groq", GROQ_MODELS))
+    for provider in provider_priority:
+        if provider == "groq" and groq_pool.has_keys:
+            for model_name in GROQ_MODELS:
+                api_key = groq_pool.get_key()
+                if not api_key:
+                    continue
+                try:
+                    res = _call_groq_json(prompt, schema, model=model_name, api_key=api_key, max_tokens=max_tokens)
+                    set_cached_response(prompt, schema.__name__, model_type, res)
+                    return res
+                except Exception as e:
+                    err_str = str(e)
+                    errors.append(f"Groq {model_name}: {err_str[:120]}")
+                    if "429" in err_str or "503" in err_str:
+                        FallbackStateManager.log_fallback_event("Groq", model_name, err_str[:200], prompt[:100])
+                        groq_pool.mark_rate_limited(api_key)
+                    continue
 
-    for provider, model_list in providers:
-        for model_name in model_list:
-            try:
-                if provider == "groq":
-                    return _call_groq_json(prompt, schema, model=model_name, max_tokens=max_tokens)
-                elif provider == "gemini":
-                    return _call_gemini_json(prompt, schema, model=model_name, max_tokens=max_tokens)
-            except Exception as e:
-                err_str = str(e)
-                errors.append(f"{provider.capitalize()} {model_name}: {err_str[:200]}")
-                logger.warning("Model %s (%s) failed: %s. Cascading to next model...", model_name, provider, err_str[:120])
-                # If 401 on Gemini, stop trying other Gemini models
-                if provider == "gemini" and ("401" in err_str or "UNAUTHENTICATED" in err_str):
-                    break
-                if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
-                    time.sleep(1)
-                continue
+        elif provider == "gemini" and gemini_pool.has_keys:
+            for model_name in GEMINI_MODELS:
+                api_key = gemini_pool.get_key()
+                if not api_key:
+                    continue
+                try:
+                    res = _call_gemini_json(prompt, schema, model=model_name, api_key=api_key, max_tokens=max_tokens)
+                    set_cached_response(prompt, schema.__name__, model_type, res)
+                    return res
+                except Exception as e:
+                    err_str = str(e)
+                    errors.append(f"Gemini {model_name}: {err_str[:120]}")
+                    if "401" in err_str or "UNAUTHENTICATED" in err_str or "400" in err_str:
+                        gemini_pool.mark_rate_limited(api_key, 3600) # Invalid key, sleep for 1hr
+                        break # Stop trying other gemini models on this key
+                    if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "503" in err_str:
+                        FallbackStateManager.log_fallback_event("Gemini", model_name, err_str[:200], prompt[:100])
+                        gemini_pool.mark_rate_limited(api_key)
+                    continue
+                    
+        elif provider == "huggingface" and hf_pool.has_keys:
+            for model_name in HF_MODELS:
+                api_key = hf_pool.get_key()
+                if not api_key:
+                    continue
+                try:
+                    res = _call_hf_json(prompt, schema, model=model_name, api_key=api_key, max_tokens=max_tokens)
+                    set_cached_response(prompt, schema.__name__, model_type, res)
+                    return res
+                except Exception as e:
+                    err_str = str(e)
+                    errors.append(f"HuggingFace {model_name}: {err_str[:120]}")
+                    if "429" in err_str or "503" in err_str:
+                        FallbackStateManager.log_fallback_event("HuggingFace", model_name, err_str[:200], prompt[:100])
+                        hf_pool.mark_rate_limited(api_key)
+                    continue
 
-    error_summary = " | ".join(errors) if errors else "No LLM provider is configured."
-    raise LLMGenerationError(f"LLM generation failed across providers: {error_summary}")
+    error_summary = " | ".join(errors) if errors else "No valid keys available."
+    raise LLMGenerationError(f"LLM structured generation failed across providers: {error_summary}")
 
 
-def _call_groq_text(prompt: str, model: str, max_tokens: int = 2048) -> str:
-    if not groq_client:
-        raise ValueError("Groq client is not initialized.")
+def _call_groq_text(prompt: str, model: str, api_key: str, max_tokens: int = 2048) -> str:
+    if not api_key:
+        raise ValueError("Groq API key is missing.")
+    groq_client = Groq(api_key=api_key, max_retries=0, timeout=15.0)
     call_kwargs = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
@@ -291,13 +401,12 @@ def _call_groq_text(prompt: str, model: str, max_tokens: int = 2048) -> str:
     return re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
 
 
-def _call_gemini_text(prompt: str, model: str, max_tokens: int = 2048) -> str:
-    global _gemini_active
-    if not gemini_api_key or not _gemini_active:
-        raise ValueError("GEMINI_API_KEY is not configured or is invalid.")
+def _call_gemini_text(prompt: str, model: str, api_key: str, max_tokens: int = 2048) -> str:
+    if not api_key:
+        raise ValueError("Gemini API key is missing.")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     headers = {
-        "x-goog-api-key": gemini_api_key,
+        "x-goog-api-key": api_key,
         "Content-Type": "application/json",
     }
     payload = {
@@ -307,9 +416,8 @@ def _call_gemini_text(prompt: str, model: str, max_tokens: int = 2048) -> str:
             "temperature": 0.4,
         },
     }
-    response = requests.post(url, headers=headers, json=payload, timeout=45)
+    response = requests.post(url, headers=headers, json=payload, timeout=20.0)
     if response.status_code == 401:
-        _gemini_active = False
         raise RuntimeError("Gemini API authentication failed (401).")
     elif response.status_code != 200:
         raise RuntimeError(f"Gemini API Error {response.status_code}: {response.text[:500]}")
@@ -325,37 +433,71 @@ def _call_gemini_text(prompt: str, model: str, max_tokens: int = 2048) -> str:
 
 def call_llm_text(prompt: str, model_type: str = "fast", retries: int = 1) -> str:
     """
-    Intelligent Dual-Engine Text Dispatch:
-    Cascades through available Groq and Gemini models without blocking.
+    Intelligent Dual-Engine Text Dispatch with Caching.
     """
     del retries
+    
+    cached = get_cached_response(prompt, "text", model_type)
+    if cached:
+        return cached
+        
     errors = []
+    provider_priority = Config.PROVIDERS.get(model_type, Config.PROVIDERS["fast"])
 
-    providers = []
-    if model_type == "fast":
-        if groq_client:
-            providers.append(("groq", GROQ_MODELS))
-        if gemini_api_key and _gemini_active:
-            providers.append(("gemini", GEMINI_MODELS))
-    else:
-        if gemini_api_key and _gemini_active:
-            providers.append(("gemini", GEMINI_MODELS))
-        if groq_client:
-            providers.append(("groq", GROQ_MODELS))
+    for provider in provider_priority:
+        if provider == "groq" and groq_pool.has_keys:
+            for model_name in GROQ_MODELS:
+                api_key = groq_pool.get_key()
+                if not api_key:
+                    continue
+                try:
+                    res = _call_groq_text(prompt, model=model_name, api_key=api_key)
+                    set_cached_response(prompt, "text", model_type, res)
+                    return res
+                except Exception as e:
+                    err_str = str(e)
+                    errors.append(f"Groq {model_name}: {err_str[:120]}")
+                    if "429" in err_str or "503" in err_str:
+                        FallbackStateManager.log_fallback_event("Groq", model_name, err_str[:200], prompt[:100])
+                        groq_pool.mark_rate_limited(api_key)
+                    continue
 
-    for provider, model_list in providers:
-        for model_name in model_list:
-            try:
-                if provider == "groq":
-                    return _call_groq_text(prompt, model=model_name)
-                elif provider == "gemini":
-                    return _call_gemini_text(prompt, model=model_name)
-            except Exception as e:
-                err_str = str(e)
-                errors.append(f"{provider.capitalize()} {model_name}: {err_str[:200]}")
-                if provider == "gemini" and ("401" in err_str or "UNAUTHENTICATED" in err_str):
-                    break
-                continue
+        elif provider == "gemini" and gemini_pool.has_keys:
+            for model_name in GEMINI_MODELS:
+                api_key = gemini_pool.get_key()
+                if not api_key:
+                    continue
+                try:
+                    res = _call_gemini_text(prompt, model=model_name, api_key=api_key)
+                    set_cached_response(prompt, "text", model_type, res)
+                    return res
+                except Exception as e:
+                    err_str = str(e)
+                    errors.append(f"Gemini {model_name}: {err_str[:120]}")
+                    if "401" in err_str or "UNAUTHENTICATED" in err_str or "400" in err_str:
+                        gemini_pool.mark_rate_limited(api_key, 3600)
+                        break
+                    if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "503" in err_str:
+                        FallbackStateManager.log_fallback_event("Gemini", model_name, err_str[:200], prompt[:100])
+                        gemini_pool.mark_rate_limited(api_key)
+                    continue
+                    
+        elif provider == "huggingface" and hf_pool.has_keys:
+            for model_name in HF_MODELS:
+                api_key = hf_pool.get_key()
+                if not api_key:
+                    continue
+                try:
+                    res = _call_hf_text(prompt, model=model_name, api_key=api_key)
+                    set_cached_response(prompt, "text", model_type, res)
+                    return res
+                except Exception as e:
+                    err_str = str(e)
+                    errors.append(f"HuggingFace {model_name}: {err_str[:120]}")
+                    if "429" in err_str or "503" in err_str:
+                        FallbackStateManager.log_fallback_event("HuggingFace", model_name, err_str[:200], prompt[:100])
+                        hf_pool.mark_rate_limited(api_key)
+                    continue
 
-    error_summary = " | ".join(errors) if errors else "No LLM provider is configured."
+    error_summary = " | ".join(errors) if errors else "No valid keys available."
     raise LLMGenerationError(f"LLM text generation failed: {error_summary}")

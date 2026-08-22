@@ -109,7 +109,17 @@ def generate_roadmap(domain: str, skill_map_dict: dict, detected_level: str, mis
     
     prompt = ROADMAP_PROMPT(domain, pruned_map, detected_level, misconceptions)
     try:
-        return call_llm(prompt, RoadmapResponse, max_tokens=3000)
+        response = call_llm(prompt, RoadmapResponse, max_tokens=3000)
+        
+        # Guard against LLM laziness where it outputs a sparse roadmap (e.g., 1 module, 1 lesson)
+        total_lessons = sum(len(m.lessons) for m in response.modules)
+        total_skills = sum(len(tier.get("skills", [])) for tier in skill_map_dict.get("skillMap", []))
+        
+        if total_lessons < (total_skills * 0.5) or len(response.modules) < 3:
+            logger.warning(f"LLM generated a sparse roadmap ({len(response.modules)} modules, {total_lessons} lessons for {total_skills} skills). Forcing deterministic fallback.")
+            raise ValueError("Sparse/lazy roadmap generation detected")
+            
+        return response
     except Exception as e:
         logger.warning("LLM roadmap generation encountered error (%s). Synthesizing tailored curriculum fallback...", e)
         return synthesize_fallback_roadmap(domain, skill_map_dict, detected_level, misconceptions)

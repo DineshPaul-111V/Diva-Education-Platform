@@ -5,6 +5,84 @@ from app.learning.services.prompts import SUBTOPIC_BREAKDOWN_PROMPT, SUBTOPIC_CO
 from app.learning.services.schemas import SubtopicBreakdown, SubtopicContent, LessonQuiz
 from app.learning.services.rag import store_student_embedding
 
+PYTHON_CODE_SIGNALS = re.compile(
+    r"^\s*("
+    r"import\s|from\s|def\s|class\s|if\s|elif\s|else\s*:|for\s|while\s|"
+    r"try\s*:|except|finally\s*:|with\s|return\b|raise\b|yield\b|"
+    r"print\s*\(|@\w|"
+    r"[a-zA-Z_][a-zA-Z0-9_]*\s*(=|\+=|-=|\*=|/=|:\s*\w)|"
+    r"[a-zA-Z_][a-zA-Z0-9_]*\s*\(.*\)\s*$|"
+    r"#"
+    r")"
+)
+
+
+def fix_code_block_comments(code_text: str) -> str:
+    lines = code_text.split("\n")
+    fixed_lines = []
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            fixed_lines.append(line)
+            continue
+        if PYTHON_CODE_SIGNALS.match(line):
+            fixed_lines.append(line)
+            continue
+        looks_like_prose = (
+            not any(ch in stripped for ch in ["(", ")", "=", ":", "[", "]"])
+            or stripped[0].isupper()
+        )
+        if looks_like_prose:
+            leading_ws = line[: len(line) - len(line.lstrip())]
+            fixed_lines.append(f"{leading_ws}# {stripped}")
+        else:
+            fixed_lines.append(line)
+    return "\n".join(fixed_lines)
+
+
+def fix_all_code_blocks(markdown_text: str) -> str:
+    if not markdown_text:
+        return ""
+    # Collapse any blank line(s) immediately after a ```python fence so the regex matches cleanly
+    markdown_text = re.sub(r"```python[ \t]*\n\s*\n+", "```python\n", markdown_text)
+    pattern = re.compile(r"```(python)[ \t]*\n(.*?)```", re.DOTALL)
+    def _replace(match):
+        lang = match.group(1)
+        code = match.group(2)
+        fixed_code = fix_code_block_comments(code)
+        return f"```{lang}\n{fixed_code}```"
+    return pattern.sub(_replace, markdown_text)
+
+
+def fix_mermaid_blocks(markdown_text: str) -> str:
+    """
+    Validates and sanitizes Mermaid blocks to prevent frontend crashes from LLM syntax errors.
+    """
+    if not markdown_text:
+        return ""
+    pattern = re.compile(r"```mermaid\n(.*?)```", re.DOTALL)
+    
+    def _validate_and_fix(match):
+        code = match.group(1).strip()
+        valid_types = ("graph", "flowchart", "sequenceDiagram", "classDiagram", "stateDiagram", "erDiagram", "gantt", "pie", "journey", "mindmap", "timeline", "gitGraph")
+        
+        if not code.startswith(valid_types):
+            return "```mermaid\ngraph TD\n  A[System Error] --> B[Invalid Mermaid Type]\n```"
+            
+        # Replace unquoted <br> with space (common LLM mistake)
+        code = re.sub(r'(?i)<br\s*/?>', ' ', code)
+        
+        # Detect unquoted nested brackets which crash Mermaid
+        for line in code.split('\n'):
+            if '"' not in line:
+                if re.search(r'\([^)]*\(', line) or re.search(r'\[[^\]]*\[', line) or re.search(r'\{[^}]*\{', line):
+                    return "```mermaid\ngraph TD\n  A[Diagram Error] --> B[Nested brackets caused syntax error]\n```"
+                    
+        return f"```mermaid\n{code}\n```"
+        
+    return pattern.sub(_validate_and_fix, markdown_text)
+
+
 def auto_fence_ascii_art(markdown_text: str) -> str:
     """
     Finds consecutive lines of raw ASCII box drawing / flowcharts (lines with +, -, |, >, <)
@@ -83,13 +161,6 @@ def normalize_numerals(text: str) -> str:
     return text.translate(devanagari_map).translate(arabic_indic_map).translate(persian_map).translate(tamil_map).translate(telugu_map).translate(bengali_map)
 
 def normalize_markdown_content(markdown_text: str) -> str:
-    """
-    Normalizes markdown text by:
-    1. Unescaping literal '\\n' and '\\t' sequences and carriage returns.
-    2. Converting any regional numeral characters into standard Western '1, 2, 3' digits.
-    3. Cleaning up double-escaped quote artifacts in code blocks.
-    4. Auto-fencing ASCII box diagrams into ```text ... ```.
-    """
     if not markdown_text:
         return ""
     
@@ -97,13 +168,13 @@ def normalize_markdown_content(markdown_text: str) -> str:
         markdown_text = markdown_text.replace("\\r\\n", "\n").replace("\\n", "\n").replace("\\t", "\t")
         
     markdown_text = markdown_text.replace("\r\n", "\n").replace("\r", "\n")
-    
-    # Normalize numerals across all languages to 0-9
     markdown_text = normalize_numerals(markdown_text)
     
-    # Fix broken escaped quote patterns in code strings (e.g. print(f"\"\n... -> print(f"\n...)
     markdown_text = re.sub(r'print\(f\\"[\\n|\n]', 'print(f"\\n', markdown_text)
     markdown_text = re.sub(r'print\(f"[\\"]', 'print(f"', markdown_text)
+    
+    markdown_text = fix_all_code_blocks(markdown_text)
+    markdown_text = fix_mermaid_blocks(markdown_text)
     
     return auto_fence_ascii_art(markdown_text)
 
@@ -134,17 +205,28 @@ def generate_full_lesson(learning_path_id: str, lesson_id: str, skill_name: str,
     breakdown = call_llm(breakdown_prompt, SubtopicBreakdown, max_tokens=1500)
     
     selected_subtopics = breakdown.subtopics[:5] if len(breakdown.subtopics) >= 5 else breakdown.subtopics
+
+    all_subtopic_summaries = [
+        f"{sub.title}: {sub.learningGoal}" for sub in selected_subtopics
+    ]
+
     
     # Pre-render prompt strings in main thread
     subtopic_prompts = []
     for subtopic in selected_subtopics:
+        # Exclude the current subtopic itself from its own "already covered" list
+        sibling_summary = "\n".join(
+            s for s in all_subtopic_summaries
+            if not s.startswith(f"{subtopic.title}:")
+        )
         prompt_str = SUBTOPIC_CONTENT_PROMPT(
             skill_name, 
             subtopic.title, 
             subtopic.learningGoal, 
             tier, 
             is_revision, 
-            domain
+            domain,
+            already_covered_summary=sibling_summary
         )
         subtopic_prompts.append((subtopic, prompt_str))
     
@@ -153,14 +235,14 @@ def generate_full_lesson(learning_path_id: str, lesson_id: str, skill_name: str,
     
     def fetch_subtopic_content(item):
         sub, p_str = item
-        data = call_llm(p_str, SubtopicContent, max_tokens=4800)
+        data = call_llm(p_str, SubtopicContent, max_tokens=8000)
         return sub, data
 
     def fetch_quiz(p_str):
         return call_llm(p_str, LessonQuiz, max_tokens=2000)
 
     sections = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         subtopic_futures = [executor.submit(fetch_subtopic_content, item) for item in subtopic_prompts]
         quiz_future = executor.submit(fetch_quiz, quiz_prompt)
         
