@@ -1,10 +1,23 @@
+# Virtual Environments
 .venv/
 venv/
 env/
+
+# Environment Variables & Secrets
+.env
+
+# Python & Pytest Cache
 __pycache__/
 *.pyc
-.env
+.pytest_cache/
+
+# Databases & Instance folders
+instance/
+*.db
 dev.db
+
+# Temporary & Scratch files
 scratch_*.json
 scratch_script_*.js
+fallback_state.json
 .ipynb_checkpoints/
