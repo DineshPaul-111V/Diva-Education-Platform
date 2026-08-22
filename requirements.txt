@@ -16,3 +16,4 @@ email-validator
 PyPDF2
 google-genai
 gunicorn
+cachetools
